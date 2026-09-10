@@ -78,20 +78,3 @@ GET  /api/usuarios|proveedores|grupos|unidades|mesas|auditoria[?page=]
 Listados: sin `?page=` devuelven array legacy; con `?page=` devuelven
 `{data, total, page, limit}`.
 
-## Despliegue en Hostinger
-
-1. Compartido PHP 8.1/8.2 + MySQL. Sube el contenido a `public_html/`.
-   **No subas:** `.env`, `sql/`, `router.php`, `api/diagnostico.php` (+ su ruta en `api.php`).
-2. Crea DB/usuario en hPanel e importa los SQL en el mismo orden.
-3. `.env` de producción **fuera** de `public_html` (un nivel arriba, donde tu
-   hosting lo permita). Usa los `DB_*` que te da el panel, un `JWT_SECRET`
-   nuevo y largo, y `APP_ORIGIN=https://tudominio.com`.
-4. Activa SSL + redirect 80→443, verifica `uploads/productos/` escribible (755).
-5. Post-deploy: `/api/health` → ok, `/.env` → 403, login, producto con foto,
-   pedido + pago mixto, caja FISICO/BANCARIO, ticket con hora Bogotá.
-
-## Notas
-
-* Integridad referencial vía FKs `RESTRICT` (borrar producto con ventas → `409`).
-* Auditoría de operaciones sensibles en tabla `auditoria`.
-* Sin `console.log` de debug en producción; `CACHE_NAME` en `sw.js` se sube por versión.
