@@ -1,0 +1,18 @@
+{
+  "name": "Copito - Dark Pink Coffee POS",
+  "short_name": "Copito POS",
+  "description": "Sistema POS y Control de Inventario para Dark Pink Coffee",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0F172A",
+  "theme_color": "#1E293B",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

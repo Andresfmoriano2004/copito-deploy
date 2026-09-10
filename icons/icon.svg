@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="corpGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E293B" />
+      <stop offset="50%" stop-color="#0F172A" />
+      <stop offset="100%" stop-color="#090D16" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60A5FA" />
+      <stop offset="100%" stop-color="#2563EB" />
+    </linearGradient>
+    <filter id="dropShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+  
+  <!-- Background Rounded Rect -->
+  <rect width="512" height="512" rx="110" fill="url(#corpGrad)"/>
+  
+  <!-- Outer Glow Circle -->
+  <circle cx="256" cy="256" r="190" fill="none" stroke="rgba(59,130,246,0.3)" stroke-width="3"/>
+  <circle cx="256" cy="256" r="180" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1.5"/>
+  
+  <!-- Coffee Cup Icon -->
+  <g filter="url(#dropShadow)" transform="translate(4, -10)">
+    <!-- Steam Lines -->
+    <path d="M190 140 Q 205 110 195 80" fill="none" stroke="#60A5FA" stroke-width="10" stroke-linecap="round" opacity="0.85"/>
+    <path d="M256 130 Q 270 95 260 65" fill="none" stroke="#93C5FD" stroke-width="11" stroke-linecap="round" opacity="0.95"/>
+    <path d="M322 140 Q 335 110 325 80" fill="none" stroke="#60A5FA" stroke-width="10" stroke-linecap="round" opacity="0.85"/>
+
+    <!-- Cup Body -->
+    <path d="M130 180 L350 180 L325 350 C 320 385, 160 385, 155 350 Z" fill="#FFFFFF"/>
+    
+    <!-- Coffee Surface / Top Oval -->
+    <ellipse cx="240" cy="180" rx="110" ry="20" fill="#E2E8F0"/>
+    <ellipse cx="240" cy="180" rx="90" ry="14" fill="#1E293B"/>
+
+    <!-- Cup Handle -->
+    <path d="M340 210 C 400 210, 400 310, 330 310" fill="none" stroke="#FFFFFF" stroke-width="24" stroke-linecap="round"/>
+
+    <!-- Plate / Saucer -->
+    <ellipse cx="240" cy="400" rx="170" ry="22" fill="#FFFFFF" opacity="0.95"/>
+    <ellipse cx="240" cy="400" rx="150" ry="15" fill="#E2E8F0" opacity="0.7"/>
+  </g>
+  
+  <!-- Brand Text -->
+  <text x="256" y="465" text-anchor="middle" fill="url(#goldGrad)" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="32" letter-spacing="6">COPITO POS</text>
+</svg>

@@ -1,0 +1,46 @@
+# ─── Seguridad ────────────────────────────────────────────────────────────────
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+Options -Indexes
+
+# Bloquear archivos sensibles
+<FilesMatch "\.(env|sql|log|err)$|^(debug|fix_password|test_|check_env)">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+# ─── Reescritura de URLs ──────────────────────────────────────────────────────
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Preservar header Authorization para PHP (Laragon/Apache lo strippea sin esto)
+  RewriteCond %{HTTP:Authorization} ^(.*)
+  RewriteRule .* - [E=HTTP_AUTHORIZATION:%1]
+
+  # Bloquear carpeta sql/
+  RewriteRule ^sql/ - [F,L]
+
+  # Manejar CORS preflight OPTIONS
+  RewriteCond %{REQUEST_METHOD} ^OPTIONS$
+  RewriteRule ^api(/.*)?$ api.php?route=$1 [L,QSA]
+
+  # /api → api.php pasando la sub-ruta como parámetro GET explícito
+  RewriteRule ^api(/.*)?$ api.php?route=$1 [L,QSA]
+
+  # Archivos y directorios reales → servir directamente
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # SPA fallback → index.html
+  RewriteRule ^ index.html [L]
+</IfModule>

@@ -1,0 +1,46 @@
+# ─── Copito POS · .gitignore ─────────────────────────────
+
+# Secretos y entorno local (NO commitear; ver .env.example)
+.env
+.env.*
+!.env.example
+
+# Imágenes runtime subidas desde la app (se respaldan con Hostinger, no en git)
+uploads/productos/*
+!uploads/productos/.htaccess
+
+# Logs y temporales de PHP/Apache
+*.log
+error_log
+debug.log
+*.tmp
+*.cache
+
+# Respaldos y dumps locales (las migraciones sql/*.sql SÍ se commitean)
+*.sql.gz
+*.sql.bak
+*.bak
+*.orig
+*~
+
+# Scripts de diagnóstico/prueba locales (el .htaccess ya los bloquea en prod)
+test_*.php
+debug*.php
+fix_*.php
+check_*.php
+
+# Dependencias (el proyecto no usa, pero si algún día se añaden)
+vendor/
+node_modules/
+
+# Sistema operativo
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+.project

@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1E293B">
+  <title>Copito - Control de Inventario</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  
+  <div id="loginScreen">
+    <div class="login-box">
+      <h2>☕ Copito</h2>
+      <p>Inicia sesión para continuar</p>
+      <div class="form-group">
+        <label for="loginUsername">Usuario</label>
+        <input id="loginUsername" type="text" placeholder="Tu usuario" autocomplete="username" autofocus>
+      </div>
+      <div class="form-group">
+        <label for="loginPassword">Contraseña</label>
+        <input id="loginPassword" type="password" placeholder="Tu contraseña" autocomplete="current-password">
+      </div>
+      <button class="btn btn-success" id="loginBtn" type="button">Iniciar Sesión</button>
+      <div class="login-error" id="loginError"></div>
+    </div>
+  </div>
+
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menú" type="button">☰</button>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <div class="app-container">
+    <nav class="sidebar" id="sidebar" aria-label="Navegación principal">
+      <div class="sidebar-header" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <h1 style="font-size:1rem;">Copito</h1>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span id="connectionBadge" class="connection-badge online" title="Estado de conexión">🟢 En línea</span>
+          <button id="darkModeToggle" style="background:rgba(255,255,255,0.15);border:none;border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;transition:background var(--transition);" title="Cambiar tema" type="button">🌙</button>
+        </div>
+      </div>
+      <ul class="nav-menu" role="tablist">
+        <li class="nav-item" role="none">
+          <button class="nav-link active" role="tab" aria-selected="true" data-tab="dashboard" type="button">
+            <span class="nav-icon" aria-hidden="true">📊</span>
+            Dashboard
+          </button>
+        </li>
+        <li class="nav-item" role="none">
+          <button class="nav-link" role="tab" aria-selected="false" data-tab="productos" type="button">
+            <span class="nav-icon" aria-hidden="true">📦</span>
+            Nuevo producto
+          </button>
+        </li>
+        <li class="nav-item" role="none">
+          <button class="nav-link" role="tab" aria-selected="false" data-tab="movimientos" type="button">
+            <span class="nav-icon" aria-hidden="true">📋</span>
+            Movimientos
+          </button>
+        </li>
+        <li class="nav-item" role="none">
+          <button class="nav-link" role="tab" aria-selected="false" data-tab="proveedores" type="button">
+            <span class="nav-icon" aria-hidden="true">📞</span>
+            Proveedores
+          </button>
+        </li>
+        <li class="nav-item" role="none">
+          <button class="nav-link" role="tab" aria-selected="false" data-tab="inventario" type="button">
+            <span class="nav-icon" aria-hidden="true">📊</span>
+            Inventario
+          </button>
+        </li>
+        <li class="nav-item" role="none">
+          <button class="nav-link" role="tab" aria-selected="false" data-tab="reportes" type="button">
+            <span class="nav-icon" aria-hidden="true">📈</span>
+            Reportes
+          </button>
+        </li>
+        <li class="nav-item" role="none">
+          <button class="nav-link" role="tab" aria-selected="false" data-tab="buscar" type="button">
+            <span class="nav-icon" aria-hidden="true">🔍</span>
+            Buscar
+          </button>
+        </li>
+        <li class="nav-item" role="none">
+          <button class="nav-link" role="tab" aria-selected="false" data-tab="mesas" type="button">
+            <span aria-hidden="true">🍽️</span> Mesas
+          </button>
+          <button class="nav-link" role="tab" aria-selected="false" data-tab="caja" type="button">
+            <span aria-hidden="true">💰</span> Caja
+          </button>
+        </li>
+        <li class="nav-item" role="none">
+          <button class="nav-link" role="tab" aria-selected="false" data-tab="configuracion" type="button">
+            <span class="nav-icon" aria-hidden="true">⚙️</span>
+            Configuración
+          </button>
+        </li>
+      </ul>
+      <div class="sidebar-user" id="sidebarUser" style="display:none;">
+        <span class="user-name" id="sidebarUserName"></span>
+        <span class="user-role" id="sidebarUserRole"></span>
+        <button class="logout-btn" id="logoutBtn" type="button">🚪 Cerrar Sesión</button>
+      </div>
+    </nav>
+
+    <main class="main-content">
+      <div id="dashboard" class="tab-content active" role="tabpanel">
+        <div class="content-header">
+          <h2>Dashboard General</h2>
+        </div>
+        <div class="content-body">
+          <div class="stats-grid" id="statsGrid" aria-live="polite"></div>
+          <div class="card">
+            <div class="card-header">Alertas de Stock</div> 
+            <div class="card-body">
+              <div class="actions">
+                <button class="btn btn-primary" data-action="refresh-dashboard" type="button">
+                  Actualizar Dashboard
+                </button>
+                <button class="btn btn-warning" data-action="show-alerts" type="button">
+                  Ver Alertas de Stock
+                </button>
+              </div>
+              <div id="alertsContainer" aria-live="polite"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="productos" class="tab-content" role="tabpanel">
+        <div class="content-header">
+          <h2>Gestión de Productos</h2>
+        </div>
+        <div class="content-body">
+          <div class="card">
+            <div class="card-header">Registrar Nuevo Producto</div>
+            <div class="card-body">
+              <form id="formProducto" novalidate>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="codigoProd">Código *</label>
+                    <input id="codigoProd" type="text" placeholder="Código único del producto" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="nombreProd">Nombre *</label>
+                    <input id="nombreProd" type="text" placeholder="Nombre del producto" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="unidadProd">Unidad de Medida</label>
+                    <select id="unidadProd" required></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="grupoProd">Grupo</label>
+                    <select id="grupoProd" required></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="stockMinProd">Stock Mínimo</label>
+                    <input id="stockMinProd" type="number" min="0" value="0">
+                  </div>
+                  <div class="form-group">
+                    <label for="precioProd">Precio</label>
+                    <input id="precioProd" type="number" min="0" step="0.01" value="0" placeholder="0.00">
+                  </div>
+                </div>
+                <div class="actions">
+                  <button type="submit" class="btn btn-success">
+                    Registrar Producto
+                  </button>
+                  <button type="button" class="btn btn-secondary" data-action="clear-product">
+                    Limpiar
+                  </button>
+                </div>
+              </form>
+              <div id="msgProd" aria-live="polite"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="movimientos" class="tab-content" role="tabpanel">
+        <div class="content-header">
+          <h2>Registro de Movimientos</h2>
+        </div>
+        <div class="content-body">
+          <div class="card">
+            <div class="card-header">Nuevo Movimiento</div>
+            <div class="card-body">
+              <form id="formMovimiento" novalidate>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="codigoMov">Código del Producto *</label>
+                    <div class="autocomplete-container">
+                      <input id="codigoMov" type="text" placeholder="Código del producto" required
+                             autocomplete="off">
+                      <div id="autocompleteDropdown" class="autocomplete-dropdown"></div>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label for="fechaMov">Fecha *</label>
+                    <input id="fechaMov" type="date" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="tipoMov">Tipo de Movimiento *</label>
+                    <select id="tipoMov" required>
+                      <option value="INGRESO">Ingreso</option>
+                      <option value="SALIDA">Salida</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="cantMov">Cantidad *</label>
+                    <input id="cantMov" type="number" min="0.01" step="0.01" placeholder="Cantidad" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="obsMov">Observaciones</label>
+                    <textarea id="obsMov" placeholder="Observaciones opcionales" rows="3"></textarea>
+                  </div>
+                </div>
+                <div class="actions">
+                  <button type="submit" class="btn btn-success">
+                    Guardar Movimiento
+                  </button>
+                  <button type="button" class="btn btn-secondary" data-action="clear-movement">
+                    Limpiar
+                  </button>
+                </div>
+              </form>
+              <div id="msgMov" aria-live="polite"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="inventario" class="tab-content" role="tabpanel">
+        <div class="content-header">
+          <h2>Control de Inventario</h2>
+        </div>
+        <div class="content-body">
+          <div class="card">
+            <div class="card-header">Stock Actual</div>
+            <div class="card-body">
+              <div class="actions">
+                <button class="btn btn-primary" data-action="refresh-stock" type="button">
+                  Actualizar Stock
+                </button>
+                <button class="btn btn-success" data-action="export-stock" type="button">
+                  Exportar CSV
+                </button>
+                <button class="btn btn-warning" data-action="show-alerts-stock" type="button">
+                  Solo Alertas
+                </button>
+              </div>
+              <div id="loading" class="loading">
+                <span class="loading-spinner"></span>
+                Cargando inventario...
+              </div>
+              <div class="table-container">
+                <div id="stockTable" aria-live="polite"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="reportes" class="tab-content" role="tabpanel">
+        <div class="content-header">
+          <h2>Reportes y Análisis</h2>
+        </div>
+        <div class="content-body">
+          <div class="card">
+            <div class="card-header">Historial de Movimientos</div>
+            <div class="card-body">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="fechaDesde">Fecha Desde</label>
+                  <input id="fechaDesde" type="date" required>
+                </div>
+                <div class="form-group">
+                  <label for="fechaHasta">Fecha Hasta</label>
+                  <input id="fechaHasta" type="date" required>
+                </div>
+                <div class="form-group">
+                  <label for="filtroTipo">Filtrar por Tipo</label>
+                  <select id="filtroTipo">
+                    <option value="">Todos los movimientos</option>
+                    <option value="INGRESO">Solo Ingresos</option>
+                    <option value="SALIDA">Solo Salidas</option>
+
+                  </select>
+                </div>
+              </div>
+              <div class="actions">
+                <button class="btn btn-primary" data-action="generate-report" type="button">
+                  Generar Reporte
+                </button>
+                <button class="btn btn-success" data-action="export-report" type="button">
+                  Exportar Reporte
+                </button>
+              </div>
+              <div class="table-container">
+                <div id="historialTable" aria-live="polite"></div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">📈 Productos Más Vendidos</div>
+            <div class="card-body">
+              <div class="form-grid">
+                <div class="form-group"><label for="ventasDesde">Desde</label><input id="ventasDesde" type="date"></div>
+                <div class="form-group"><label for="ventasHasta">Hasta</label><input id="ventasHasta" type="date"></div>
+              </div>
+              <div class="actions">
+                <button class="btn btn-primary" data-action="generar-reporte-ventas" type="button">Generar</button>
+              </div>
+              <div id="ventasChart" style="margin-top:15px;"></div>
+              <div id="ventasStats" style="margin-top:15px;"></div>
+              <div id="ventasMsg" aria-live="polite"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">📊 Ventas por Semana</div>
+            <div class="card-body">
+              <div class="form-grid">
+                <div class="form-group"><label for="semanalDesde">Desde</label><input id="semanalDesde" type="date"></div>
+                <div class="form-group"><label for="semanalHasta">Hasta</label><input id="semanalHasta" type="date"></div>
+              </div>
+              <div class="actions">
+                <button class="btn btn-primary" data-action="generar-reporte-semanal" type="button">Generar</button>
+              </div>
+              <div id="semanalChart" style="margin-top:15px;"></div>
+              <div id="semanalDetalle" style="margin-top:15px;"></div>
+              <div id="semanalMsg" aria-live="polite"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="proveedores" class="tab-content" role="tabpanel">
+        <div class="content-header">
+          <h2>Proveedores</h2>
+        </div>
+        <div class="content-body"></div>
+      </div>
+
+      <div id="buscar" class="tab-content" role="tabpanel">
+        <div class="content-header">
+          <h2>Búsqueda de Productos</h2>
+        </div>
+        <div class="content-body">
+          <div class="card">
+            <div class="card-header">Buscar Productos</div>
+            <div class="card-body">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="buscarTexto">Buscar por código, nombre o grupo</label>
+                  <input id="buscarTexto" type="text" placeholder="Escriba para buscar..." autocomplete="off">
+                </div>
+              </div>
+              <div class="actions">
+                <button class="btn btn-primary" data-action="search" type="button">
+                  Buscar
+                </button>
+                <button class="btn btn-secondary" data-action="clear-search" type="button">
+                  Limpiar
+                </button>
+              </div>
+              <div class="table-container">
+                <div id="resultadosBusqueda" aria-live="polite"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="mesas" class="tab-content" role="tabpanel">
+        <div class="content-header">
+          <h2>Mesas / Pedidos</h2>
+        </div>
+        <div class="content-body">
+          <div class="actions" style="justify-content:space-between;align-items:center;flex-wrap:wrap;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-success" data-action="nuevo-pedido" type="button">
+                ➕ Nuevo Pedido
+              </button>
+              <button class="btn btn-primary" data-action="refresh-mesas" type="button">
+                🔄 Actualizar
+              </button>
+            </div>
+            <div style="display:flex;gap:4px;background:var(--primary-bg-light);border-radius:var(--radius);padding:3px;">
+              <button class="btn btn-sm btn-primary" data-action="mesa-mode-activas" type="button" style="padding:6px 14px;font-size:0.85rem;">📋 Activas</button>
+              <button class="btn btn-sm btn-secondary" data-action="mesa-mode-historial" type="button" style="padding:6px 14px;font-size:0.85rem;">📜 Historial</button>
+            </div>
+          </div>
+          <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:15px;" id="currencyLabel">
+            Precios en Pesos Colombianos ($ COP)
+          </p>
+
+          <div id="mesaView">
+            <div id="pedidosActivos"></div>
+          </div>
+
+          <div id="historialView" style="display:none;">
+            <div class="card">
+              <div class="card-header">📜 Historial de Pedidos</div>
+              <div class="card-body">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="histFechaDesde">Desde</label>
+                    <input id="histFechaDesde" type="date">
+                  </div>
+                  <div class="form-group">
+                    <label for="histFechaHasta">Hasta</label>
+                    <input id="histFechaHasta" type="date">
+                  </div>
+                </div>
+                <div class="actions">
+                  <button class="btn btn-primary" data-action="filtrar-historial" type="button">Filtrar</button>
+                </div>
+                <div class="table-container">
+                  <div id="historialPedidosTable" aria-live="polite"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="pedidoDetail" style="display:none;"></div>
+        </div>
+      </div>
+
+      <div id="caja" class="tab-content" role="tabpanel">
+        <div class="content-header">
+          <h2>Caja</h2>
+        </div>
+        <div class="content-body"></div>
+      </div>
+
+      <div id="configuracion" class="tab-content" role="tabpanel">
+        <div class="content-header">
+          <h2>Configuración del Sistema</h2>
+        </div>
+        <div class="content-body">
+          <div class="card">
+            <div class="card-header">Herramientas de Administración</div>
+            <div class="card-body">
+              <div class="actions">
+                <button class="btn btn-info" data-action="validate" type="button">
+                  Validar Integridad
+                </button>
+                <button class="btn btn-success" data-action="init-system" type="button">
+                  Inicializar Sistema
+                </button>
+                <button class="btn btn-warning" data-action="clear-all" type="button">
+                  Limpiar Todo
+                </button>
+                <button class="btn btn-danger" data-action="reset-system" type="button">
+                  Reset Sistema
+                </button>
+              </div>
+              <div id="configResults" aria-live="polite"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/ticket.js"></script>
+  <script src="js/app.js"></script>
+  <!-- Fase 1: módulos que extienden la fachada global App (sin build, orden libre entre ellos) -->
+  <script src="js/core/format.js"></script>
+  <script src="js/core/ui.js"></script>
+  <script src="js/core/pager.js"></script>
+  <script src="js/modules/dashboard.js"></script>
+  <script src="js/modules/productos.js"></script>
+  <script src="js/modules/movimientos.js"></script>
+  <script src="js/modules/reportes.js"></script>
+  <script src="js/modules/buscar.js"></script>
+  <script src="js/modules/proveedores.js"></script>
+  <script src="js/modules/mesas.js"></script>
+  <script src="js/modules/caja.js"></script>
+  <script src="js/modules/config.js"></script>
+  <script>
+    // Registro de Service Worker para capacidades PWA y offline
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('Copito SW registrado con éxito:', reg.scope))
+          .catch(err => console.warn('Error al registrar Copito SW:', err));
+      });
+    }
+
+    // Monitor de estado de conexión a internet
+    function actualizarEstadoRed() {
+      const badge = document.getElementById('connectionBadge');
+      if (!badge) return;
+      if (navigator.onLine) {
+        badge.className = 'connection-badge online';
+        badge.innerHTML = '🟢 En línea';
+        badge.title = 'Conectado a la red';
+      } else {
+        badge.className = 'connection-badge offline';
+        badge.innerHTML = '🔴 Sin red';
+        badge.title = 'Sin conexión a internet. Los cambios no se guardarán hasta reconectar.';
+      }
+    }
+
+    window.addEventListener('online', actualizarEstadoRed);
+    window.addEventListener('offline', actualizarEstadoRed);
+    actualizarEstadoRed();
+  </script>
+</body>
+</html>
