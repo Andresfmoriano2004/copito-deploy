@@ -37,18 +37,6 @@ sql/migracion_v5_fks.sql    14 FKs RESTRICT + checks de huérfanos
 uploads/productos/          Imágenes runtime (hash, máx 2 MB, JPG/PNG/WEBP)
 ```
 
-## Instalación local (Laragon)
-
-1. Clona/copia el proyecto en la carpeta `www` de Laragon.
-2. Crea la base de datos en HeidiSQL e importa en orden:
-   `dpcoffee.sql` → `migracion_v2.sql` → `migracion_v3.sql` →
-   `migracion_v4_proveedores.sql` → `migracion_v5_fks.sql`
-3. Copia `.env.example` a `.env` y configura tus valores locales
-   (host, puerto, usuario, clave, base y un `JWT_SECRET` largo generado con
-   `openssl rand -hex 32`). Nunca commitees el `.env` real.
-4. Abre la app en tu `http://localhost/...` y verifica `…/api/health` → `{"status":"ok"}`.
-5. Entra con el usuario `admin` inicial (cambia su contraseña enseguida;
-   nunca uses claves de desarrollo en producción).
 
 ## Uso (roles)
 
