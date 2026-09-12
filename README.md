@@ -37,18 +37,6 @@ sql/migracion_v5_fks.sql    14 FKs RESTRICT + checks de huérfanos
 uploads/productos/          Imágenes runtime (hash, máx 2 MB, JPG/PNG/WEBP)
 ```
 
-## Instalación local (Laragon)
-
-1. Clona/copia el proyecto en la carpeta `www` de Laragon.
-2. Crea la base de datos en HeidiSQL e importa en orden:
-   `dpcoffee.sql` → `migracion_v2.sql` → `migracion_v3.sql` →
-   `migracion_v4_proveedores.sql` → `migracion_v5_fks.sql`
-3. Copia `.env.example` a `.env` y configura tus valores locales
-   (host, puerto, usuario, clave, base y un `JWT_SECRET` largo generado con
-   `openssl rand -hex 32`). Nunca commitees el `.env` real.
-4. Abre la app en tu `http://localhost/...` y verifica `…/api/health` → `{"status":"ok"}`.
-5. Entra con el usuario `admin` inicial (cambia su contraseña enseguida;
-   nunca uses claves de desarrollo en producción).
 
 ## Uso (roles)
 
@@ -78,20 +66,3 @@ GET  /api/usuarios|proveedores|grupos|unidades|mesas|auditoria[?page=]
 Listados: sin `?page=` devuelven array legacy; con `?page=` devuelven
 `{data, total, page, limit}`.
 
-## Despliegue en Hostinger
-
-1. Compartido PHP 8.1/8.2 + MySQL. Sube el contenido a `public_html/`.
-   **No subas:** `.env`, `sql/`, `router.php`, `api/diagnostico.php` (+ su ruta en `api.php`).
-2. Crea DB/usuario en hPanel e importa los SQL en el mismo orden.
-3. `.env` de producción **fuera** de `public_html` (un nivel arriba, donde tu
-   hosting lo permita). Usa los `DB_*` que te da el panel, un `JWT_SECRET`
-   nuevo y largo, y `APP_ORIGIN=https://tudominio.com`.
-4. Activa SSL + redirect 80→443, verifica `uploads/productos/` escribible (755).
-5. Post-deploy: `/api/health` → ok, `/.env` → 403, login, producto con foto,
-   pedido + pago mixto, caja FISICO/BANCARIO, ticket con hora Bogotá.
-
-## Notas
-
-* Integridad referencial vía FKs `RESTRICT` (borrar producto con ventas → `409`).
-* Auditoría de operaciones sensibles en tabla `auditoria`.
-* Sin `console.log` de debug en producción; `CACHE_NAME` en `sw.js` se sube por versión.
