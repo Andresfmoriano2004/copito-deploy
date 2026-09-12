@@ -78,8 +78,8 @@ Object.assign(App, {
       let asignado = 0;
       let hayEfectivo = false;
       this.METODOS_PAGO.forEach(m => {
-        const val = parseFloat(document.getElementById(`pagoMonto_${m.id}`)?.value) || 0;
-        asignado += val;
+        const val = Math.round(parseFloat(document.getElementById(`pagoMonto_${m.id}`)?.value) || 0);
+        asignado = this.sumMoney(asignado, val);
         if (val > 0 && m.tipo === 'FISICO') hayEfectivo = true;
       });
       asignadoSpan.textContent = this.fmt(asignado);
@@ -98,9 +98,9 @@ Object.assign(App, {
       }
 
       if (reciboInput && !reciboInput.disabled) {
-        const montoRecibido = parseFloat(reciboInput.value) || 0;
-        if (montoRecibido >= asignado && asignado >= total - 0.01) {
-          const cambio = montoRecibido - total;
+        const montoRecibido = Math.round(parseFloat(reciboInput.value) || 0);
+        if (montoRecibido >= asignado && asignado >= this.subMoney(total, 0.01)) {
+          const cambio = this.subMoney(montoRecibido, total);
           if (cambio > 0) {
             cambioDisplay.style.display = 'flex';
             cambioValor.textContent = this.fmt(cambio);
@@ -118,7 +118,7 @@ Object.assign(App, {
         estadoMsg.innerHTML = '<span style="color:var(--text-muted);">Asigne montos a los métodos de pago</span>';
         btnConfirmar.disabled = true;
         btnConfirmar.textContent = `✅ Asigne montos`;
-      } else if (asignado < total - 0.01) {
+      } else if (asignado < this.subMoney(total, 0.01)) {
         const falta = total - asignado;
         estadoMsg.innerHTML = `<span style="color:var(--danger);font-weight:600;">⚠️ Faltan ${this.fmt(falta)}</span>`;
         btnConfirmar.disabled = true;
@@ -132,7 +132,7 @@ Object.assign(App, {
         btnConfirmar.disabled = true;
         btnConfirmar.textContent = `✅ Complete monto recibido`;
       } else {
-        const cambio = (parseFloat(reciboInput?.value) || 0) - total;
+        const cambio = this.subMoney(parseFloat(reciboInput.value) || 0, total);
         if (cambio > 0) {
           estadoMsg.innerHTML = `<span style="color:var(--warning-text);font-weight:600;">Cambio a devolver: ${this.fmt(cambio)}</span>`;
         } else {
@@ -152,11 +152,11 @@ Object.assign(App, {
     btnConfirmar.addEventListener('click', () => {
       const pagos = [];
       this.METODOS_PAGO.forEach(m => {
-        const monto = parseFloat(document.getElementById(`pagoMonto_${m.id}`)?.value) || 0;
+        const monto = Math.round(parseFloat(document.getElementById(`pagoMonto_${m.id}`)?.value) || 0);
         if (monto > 0) pagos.push({ metodoPago: m.id, monto });
       });
       if (!pagos.length) return;
-      const cambio = reciboInput && !reciboInput.disabled ? Math.max(0, (parseFloat(reciboInput.value) || 0) - total) : 0;
+      const cambio = reciboInput && !reciboInput.disabled ? Math.max(0, this.subMoney(Math.round(parseFloat(reciboInput.value) || 0), total)) : 0;
       modal.remove();
       onConfirm(pagos, cambio);
     });
@@ -203,9 +203,9 @@ Object.assign(App, {
     const btnConfirmar = document.getElementById('btnConfirmarAbono');
     const actualizar = () => {
       let asignado = 0;
-      this.METODOS_PAGO.forEach(m => { asignado += parseFloat(document.getElementById(`abonoMonto_${m.id}`)?.value) || 0; });
+      this.METODOS_PAGO.forEach(m => { asignado = this.sumMoney(asignado, Math.round(parseFloat(document.getElementById(`abonoMonto_${m.id}`)?.value) || 0)); });
       asignadoSpan.textContent = this.fmt(asignado);
-      restanteSpan.textContent = this.fmt(Math.max(0, saldo - asignado));
+      restanteSpan.textContent = this.fmt(Math.max(0, this.subMoney(saldo, asignado)));
       if (asignado <= 0) {
         estadoMsg.innerHTML = '<span style="color:var(--text-muted);">Ingrese el valor a abonar</span>';
         btnConfirmar.disabled = true; btnConfirmar.textContent = '💰 Abonar';
@@ -227,7 +227,7 @@ Object.assign(App, {
     btnConfirmar.addEventListener('click', () => {
       const pagos = [];
       this.METODOS_PAGO.forEach(m => {
-        const monto = parseFloat(document.getElementById(`abonoMonto_${m.id}`)?.value) || 0;
+        const monto = Math.round(parseFloat(document.getElementById(`abonoMonto_${m.id}`)?.value) || 0);
         if (monto > 0) pagos.push({ metodoPago: m.id, monto });
       });
       if (!pagos.length) return;

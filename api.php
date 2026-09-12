@@ -69,26 +69,29 @@ $modules = [
 // ─── Health check ───────────────────────────────────────────────────────────
 if ($route === '' || $route === 'health') {
     try {
-        $test = db()->query('SELECT COUNT(*) as total FROM usuarios')->fetch();
-        jsonResponse([
-            'status'   => 'ok',
-            'db'       => 'connected',
-            'usuarios' => (int)$test['total'],
-            'route'    => $route,
-        ]);
+        db()->query('SELECT 1');
+        jsonResponse(['status' => 'ok']);
     } catch (Exception $e) {
-        jsonResponse(['status' => 'error', 'db' => $e->getMessage()], 500);
+        jsonResponse(['status' => 'error'], 500);
     }
 }
 
 // ─── Dispatch al módulo ─────────────────────────────────────────────────────
+$matched = '';
+$matchedLen = 0;
 foreach ($modules as $prefix => $file) {
     if ($route === $prefix || strpos($route, $prefix . '/') === 0) {
-        $_GET['route'] = $route;
-        ob_end_clean();
-        require $file;
-        exit;
+        if (strlen($prefix) > $matchedLen) {
+            $matched = $prefix;
+            $matchedLen = strlen($prefix);
+        }
     }
+}
+if ($matched !== '') {
+    $_GET['route'] = $route;
+    ob_end_clean();
+    require $modules[$matched];
+    exit;
 }
 
 jsonError('Ruta API no encontrada: /' . $route, 404);

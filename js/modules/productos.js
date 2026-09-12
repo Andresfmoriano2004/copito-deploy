@@ -18,18 +18,18 @@ Object.assign(App, {
       container.innerHTML = `
         <div class="card"><div class="card-header">Registrar Nuevo Producto</div><div class="card-body">
           <div class="form-grid">
-            <div class="form-group"><label for="prodCodigo">Código</label><input id="prodCodigo" type="text" required placeholder="Ej: CAFE-001"></div>
-            <div class="form-group"><label for="prodNombre">Nombre</label><input id="prodNombre" type="text" required></div>
-            <div class="form-group" style="display:none;"><label for="prodUnidad">Unidad</label><select id="prodUnidad" required></select></div>
-            <div class="form-group"><label for="prodGrupo">Grupo</label><select id="prodGrupo" required></select></div>
-          <div class="form-group"><label for="prodStockMin">Stock Mín (alerta)</label><input id="prodStockMin" type="number" min="0" step="0.01" value="0">
-            <span class="field-hint">Alerta cuando el stock baje de este número</span></div>
-          <div class="form-group"><label for="prodPrecio">Precio Venta</label><input id="prodPrecio" type="number" min="0" step="0.01" value="0"></div>
-          <div class="form-group"><label for="prodCosto">Costo Unitario</label><input id="prodCosto" type="number" min="0" step="0.01" value="0">
+            <div class="form-group form-full"><label for="prodCodigo">Código</label><input id="prodCodigo" type="text" required placeholder="Ej: CAFE-001"></div>
+            <div class="form-group form-full"><label for="prodNombre">Nombre</label><input id="prodNombre" type="text" required></div>
+            <div class="form-group form-full" style="display:none;"><label for="prodUnidad">Unidad</label><select id="prodUnidad" required></select></div>
+            <div class="form-group form-full"><label for="prodGrupo">Grupo</label><select id="prodGrupo" required></select></div>
+          <div class="form-group form-half"><label for="prodPrecio">Precio Venta</label><input id="prodPrecio" type="number" min="0" step="1" value="0"></div>
+          <div class="form-group form-half"><label for="prodCosto">Costo Unitario</label><input id="prodCosto" type="number" min="0" step="1" value="0">
             <span class="field-hint">Lo que le costó el producto</span></div>
-          <div class="form-group"><label for="prodStockInicial">Stock Inicial</label><input id="prodStockInicial" type="number" min="0" step="0.01" value="0">
-            <span class="field-hint">Cantidad actual que tienes en inventario</span></div>
-          <div class="form-group"><label for="prodImagen">Imagen del producto</label><input id="prodImagen" type="file" accept="image/jpeg,image/png,image/webp">
+          <div class="form-group form-half"><label for="prodStockInicial">Stock Inicial</label><input id="prodStockInicial" type="number" min="0" step="0.01" value="0">
+            <span class="field-hint">Cantidad actual en inventario</span></div>
+          <div class="form-group form-half"><label for="prodStockMin">Stock Mín (alerta)</label><input id="prodStockMin" type="number" min="0" step="0.01" value="0">
+            <span class="field-hint">Alerta cuando el stock baje de este número</span></div>
+          <div class="form-group form-full"><label for="prodImagen">Imagen del producto</label><input id="prodImagen" type="file" accept="image/jpeg,image/png,image/webp">
             <span class="field-hint">JPG, PNG o WEBP. Máximo 2 MB.</span></div>
           </div>
           <div class="actions"><button class="btn btn-success" data-action="save-product" type="button">Crear Producto</button></div>
@@ -158,8 +158,8 @@ Object.assign(App, {
     if (!unidad) unidad = 'Unidad';
     const grupo = document.getElementById('prodGrupo')?.value;
     const stockMinimo = parseFloat(document.getElementById('prodStockMin')?.value) || 0;
-    const precio = parseFloat(document.getElementById('prodPrecio')?.value) || 0;
-    const costo = parseFloat(document.getElementById('prodCosto')?.value) || 0;
+    const precio = Math.round(parseFloat(document.getElementById('prodPrecio')?.value) || 0);
+    const costo = Math.round(parseFloat(document.getElementById('prodCosto')?.value) || 0);
     const stockInicial = parseFloat(document.getElementById('prodStockInicial')?.value) || 0;
     const imagen = document.getElementById('prodImagen')?.files?.[0];
     if (imagen && imagen.size > 2 * 1024 * 1024) {
@@ -228,8 +228,8 @@ Object.assign(App, {
               <div class="form-group"><label>Unidad</label><select id="editProdUnidad">${unidades.map(u => `<option value="${u}" ${prod.unidad === u ? 'selected' : ''}>${u}</option>`).join('')}</select></div>
               <div class="form-group"><label>Grupo</label><select id="editProdGrupo">${grupos.map(g => `<option value="${g}" ${prod.grupo === g ? 'selected' : ''}>${g}</option>`).join('')}</select></div>
               <div class="form-group"><label>Stock Mín (alerta)</label><input id="editProdStockMin" type="number" min="0" step="0.01" value="${prod.stockMinimo}"></div>
-              <div class="form-group"><label>Precio Venta</label><input id="editProdPrecio" type="number" min="0" step="0.01" value="${prod.precio}"></div>
-              <div class="form-group"><label>Costo Unitario</label><input id="editProdCosto" type="number" min="0" step="0.01" value="${prod.costo || 0}"></div>
+              <div class="form-group"><label>Precio Venta</label><input id="editProdPrecio" type="number" min="0" step="1" value="${prod.precio}"></div>
+              <div class="form-group"><label>Costo Unitario</label><input id="editProdCosto" type="number" min="0" step="1" value="${prod.costo || 0}"></div>
               <div class="form-group"><label>Ajustar Stock</label><input id="editAjusteStock" type="number" step="0.01" value="0" placeholder="+/- para ajustar">
                 <span class="field-hint">Positivo=INGRESO, Negativo=SALIDA</span></div>
               <div class="form-group"><label for="editProdImagen">Cambiar imagen</label><input id="editProdImagen" type="file" accept="image/jpeg,image/png,image/webp">
@@ -254,8 +254,8 @@ Object.assign(App, {
     const unidad = document.getElementById('editProdUnidad')?.value;
     const grupo = document.getElementById('editProdGrupo')?.value;
     const stockMinimo = parseFloat(document.getElementById('editProdStockMin')?.value) || 0;
-    const precio = parseFloat(document.getElementById('editProdPrecio')?.value) || 0;
-    const costo = parseFloat(document.getElementById('editProdCosto')?.value) || 0;
+    const precio = Math.round(parseFloat(document.getElementById('editProdPrecio')?.value) || 0);
+    const costo = Math.round(parseFloat(document.getElementById('editProdCosto')?.value) || 0);
     const ajuste = parseFloat(document.getElementById('editAjusteStock')?.value) || 0;
     const imagen = document.getElementById('editProdImagen')?.files?.[0];
     if (imagen && imagen.size > 2 * 1024 * 1024) { this.showMessage('productMsg', 'La imagen no puede superar 2 MB', 'error'); return; }

@@ -10,6 +10,8 @@ const App = {
     cerrandoPedido: false,
     mesaMode: 'activas',
     cuentas: ['A', 'B'],
+    currentCuentaSeleccionada: null,
+    currentCuentasPedido: [],
     user: null
   },
 
@@ -175,6 +177,7 @@ const App = {
       'activar-split': () => this.activarSplit(),
       'asignar-cuenta': () => this.asignarCuenta(actionBtn.dataset.detalleid, actionBtn.dataset.cuenta),
       'cerrar-cuenta': () => this.cerrarCuenta(actionBtn.dataset.cuenta),
+      'seleccionar-items-cuenta': () => this.mostrarModalPagarCuenta(actionBtn.dataset.cuenta),
       'cerrar-cuenta-general': () => this.cerrarCuenta(null),
       'abonar-cuenta': () => this.abonarCuentaUI(actionBtn.dataset.cuenta),
       'abonar-general': () => this.abonarCuentaUI(null),
@@ -326,6 +329,13 @@ App.init = function() {
 
   document.addEventListener('click', e => App.handleClick(e));
   document.addEventListener('keydown', e => App.handleKeydown(e));
+  document.addEventListener('change', e => {
+    if (e.target.matches('[data-action="asignar-cuenta-select"]')) {
+      const detalleId = e.target.dataset.detalleid;
+      const cuenta = e.target.value;
+      if (detalleId && cuenta) App.asignarCuenta(detalleId, cuenta);
+    }
+  });
 
   window.addEventListener('resize', () => {
     App.state.isMobile = window.innerWidth <= 768;

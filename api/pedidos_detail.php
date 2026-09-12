@@ -7,7 +7,7 @@ if ($method === 'GET' && preg_match('#^pedidos/([^/]+)$#', $path, $m)) {
 
   $items = fetchPedidoItems($pdo, $id);
   $pagos = fetchPedidoPagos($pdo, $id);
-  $totalPagado = array_sum(array_map(fn($p) => $p['monto'], $pagos));
+  $totalPagado = round(array_sum(array_map(fn($p) => (float)$p['monto'], $pagos)), 2);
 
   jsonResponse([
     'id' => $ped['id_pedido'], 'lugar' => $ped['lugar'], 'cliente' => $ped['cliente'] ?? '',
@@ -19,9 +19,10 @@ if ($method === 'GET' && preg_match('#^pedidos/([^/]+)$#', $path, $m)) {
     'horaCierre' => fmtHoraBogota($ped['fecha_cierre'] ?? null),
     'fechaHoraCierre' => fmtFechaHoraBogota($ped['fecha_cierre'] ?? null),
     'vendedor' => $ped['vendedor'] ?? '',
-    'total' => (float)$ped['total'], 'metodoPago' => $ped['metodo_pago'] ?? '',
-    'totalPagado' => $totalPagado, 'saldoRestante' => (float)$ped['total'] - $totalPagado,
-    'items' => $items, 'pagos' => $pagos
+    'total' => round((float)$ped['total'], 2), 'metodoPago' => $ped['metodo_pago'] ?? '',
+    'totalPagado' => $totalPagado, 'saldoRestante' => round((float)$ped['total'] - $totalPagado, 2),
+    'items' => $items, 'pagos' => $pagos,
+    'cuentasActivas' => $ped['cuentas_activas'] ? explode(',', $ped['cuentas_activas']) : null
   ]);
 }
 

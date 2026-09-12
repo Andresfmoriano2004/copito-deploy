@@ -23,11 +23,19 @@ if (file_exists($envFile)) {
   $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
   foreach ($lines as $line) {
     if (strpos(trim($line), '#') === 0) continue;
-    if (strpos($line, '=') !== false) {
-      list($k, $v) = explode('=', $line, 2);
-      $k = trim($k);
-      $v = trim($v, " \t\n\r\0\x0B\"'");
-      if (!getenv($k)) {
+    $pos = strpos($line, '=');
+    if ($pos !== false) {
+      $k = trim(substr($line, 0, $pos));
+      $v = substr($line, $pos + 1);
+      $v = trim($v);
+      if (strlen($v) >= 2) {
+        $first = $v[0];
+        $last = $v[strlen($v) - 1];
+        if (($first === '"' && $last === '"') || ($first === "'" && $last === "'")) {
+          $v = substr($v, 1, -1);
+        }
+      }
+      if ($k !== '' && !getenv($k)) {
         putenv("$k=$v");
         $_ENV[$k] = $v;
       }

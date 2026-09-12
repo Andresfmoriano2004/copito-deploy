@@ -83,10 +83,10 @@ const Ticket = {
 
       if (esComanda) {
         itemsHtml += `
-          <div class="ticket-row-item">
-            <span class="ticket-qty">${cant}x</span>
-            <span class="ticket-name">${cuentaBadge}${this.escapeHtml(it.nombre_producto || it.nombre)}</span>
-            ${it.notas ? `<div class="ticket-item-nota">Nota: ${this.escapeHtml(it.notas)}</div>` : ''}
+          <div class="ticket-row-item ticket-row-comanda">
+            <span class="ticket-qty ticket-qty-comanda">${cant}x</span>
+            <span class="ticket-name ticket-name-comanda">${cuentaBadge}${this.escapeHtml(it.nombre_producto || it.nombre)}</span>
+            ${it.notas ? `<div class="ticket-item-nota ticket-nota-comanda">${this.escapeHtml(it.notas)}</div>` : ''}
           </div>
         `;
       } else {
@@ -178,11 +178,16 @@ const Ticket = {
           </div>
         ` : ''}
 
+        ${!esComanda ? `
         <div class="ticket-footer">
           <div class="ticket-divider-double"></div>
           <div class="ticket-bye">${this.config.mensajePie}</div>
           <div class="ticket-bye-sub">${this.config.pieSecundario}</div>
-        </div>
+        </div>` : `
+        <div class="ticket-footer">
+          <div class="ticket-divider-double"></div>
+          <div class="ticket-bye" style="font-size:0.7rem;opacity:0.6;">Preparación interna</div>
+        </div>`}
       </div>
     `;
   },

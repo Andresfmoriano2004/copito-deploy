@@ -13,7 +13,7 @@ function tipoPago($metodo) {
 function registrarPagos($pdo, $idPedido, $cuenta, $pagos) {
   $stmt = $pdo->prepare('INSERT INTO pagos (id_pedido, cuenta, metodo_pago, monto, usuario_id, mesa) SELECT ?,?,?,?,?,lugar FROM pedidos WHERE id_pedido=?');
   foreach ($pagos as $p) {
-    $stmt->execute([$idPedido, $cuenta, $p['metodoPago'], $p['monto'], $GLOBALS['authUser']['id'], $idPedido]);
+    $stmt->execute([$idPedido, $cuenta, $p['metodoPago'], round($p['monto']), $GLOBALS['authUser']['id'], $idPedido]);
   }
 }
 
@@ -28,15 +28,21 @@ function registrarVentaEnCaja($pdo, $idPedido, $pagos, $desc, $userId) {
 
 function parsePagos($body, $total) {
   if (!empty($body['pagos']) && is_array($body['pagos'])) {
-    $pagos = array_map(fn($p) => ['metodoPago' => normalizarMetodoPago($p['metodoPago'] ?? ''), 'monto' => (float)($p['monto'] ?? 0)], $body['pagos']);
-    foreach ($pagos as $p) if (!validarMetodoPago($p['metodoPago']) || $p['monto'] <= 0) jsonError('Método de pago o monto inválido. Use Efectivo o Transferencia');
-    if (array_sum(array_column($pagos, 'monto')) > $total + 0.01) jsonError('El valor pagado no puede superar el total');
+    $pagos = array_map(fn($p) => ['metodoPago' => normalizarMetodoPago($p['metodoPago'] ?? ''), 'monto' => round((float)($p['monto'] ?? 0))], $body['pagos']);
+    foreach ($pagos as $i => $p) {
+      if (!validarMetodoPago($p['metodoPago'])) jsonError("Método de pago inválido en pago #" . ($i + 1) . ". Use Efectivo o Transferencia");
+      if ($p['monto'] <= 0) jsonError("El monto del pago #" . ($i + 1) . " debe ser mayor a cero");
+      if ($p['monto'] > 999999999) jsonError("El monto del pago #" . ($i + 1) . " excede el máximo permitido");
+    }
+    $sumaPagos = round(array_sum(array_column($pagos, 'monto')), 2);
+    if ($sumaPagos > round($total, 2) + 0.01) jsonError('El valor pagado ($' . number_format($sumaPagos, 0, ',', '.') . ') no puede superar el total ($' . number_format($total, 0, ',', '.') . ')');
     return $pagos;
   }
   if (!empty($body['metodoPago'])) {
     $body['metodoPago'] = normalizarMetodoPago($body['metodoPago']);
     if (!validarMetodoPago($body['metodoPago'])) jsonError('Método de pago no permitido. Use Efectivo o Transferencia');
-    return [['metodoPago' => $body['metodoPago'], 'monto' => $total]];
+    if ($total <= 0) jsonError('El total debe ser mayor a cero para registrar un pago');
+    return [['metodoPago' => $body['metodoPago'], 'monto' => round($total, 2)]];
   }
   return null;
 }
@@ -72,15 +78,16 @@ function fetchPedidoPagos($pdo, $id) {
 }
 
 function updatePedidoTotal($pdo, $id) {
-  $sum = $pdo->prepare('SELECT COALESCE(SUM(subtotal),0) AS total FROM detalle_pedido WHERE id_pedido=?');
+  $sum = $pdo->prepare('SELECT COALESCE(ROUND(SUM(subtotal),2),0) AS total FROM detalle_pedido WHERE id_pedido=?');
   $sum->execute([$id]);
-  $pdo->prepare('UPDATE pedidos SET total=? WHERE id_pedido=?')->execute([$sum->fetch()['total'], $id]);
+  $total = round((float)$sum->fetch()['total'], 2);
+  $pdo->prepare('UPDATE pedidos SET total=? WHERE id_pedido=?')->execute([$total, $id]);
 }
 
 function checkStock($pdo, $codigo, $cantidad) {
-  $stock = $pdo->prepare("SELECT COALESCE(SUM(CASE WHEN tipo='INGRESO' THEN cantidad ELSE -cantidad END),0) AS stock_actual FROM movimientos WHERE codigo_producto=?");
+  $stock = $pdo->prepare("SELECT COALESCE(ROUND(SUM(CASE WHEN tipo='INGRESO' THEN cantidad ELSE -cantidad END),2),0) AS stock_actual FROM movimientos WHERE codigo_producto=?");
   $stock->execute([$codigo]);
-  return (float)$stock->fetch()['stock_actual'] >= $cantidad;
+  return round((float)$stock->fetch()['stock_actual'], 2) >= round($cantidad, 2);
 }
 
 function getProductoPrecio($pdo, $codigo) {
@@ -96,4 +103,21 @@ function registrarMovimientosStock($pdo, $items, $notaBase) {
     $insMov->execute([$item['codigo_producto'], 'SALIDA', $item['cantidad'], $notaBase . " - " . $item['nombre_producto'], $GLOBALS['authUser']['id']]);
     $updPag->execute([$item['id']]);
   }
+}
+
+function validarCuentaPedido($pdo, $idPedido, $cuenta) {
+  if ($cuenta === null) return true;
+  $cuenta = strtoupper(trim($cuenta));
+  if (strlen($cuenta) !== 1 || $cuenta < 'A' || $cuenta > 'Z') return false;
+  $stmt = $pdo->prepare('SELECT cuentas_activas FROM pedidos WHERE id_pedido=?');
+  $stmt->execute([$idPedido]);
+  $row = $stmt->fetch();
+  if ($row && $row['cuentas_activas']) {
+    $activas = explode(',', $row['cuentas_activas']);
+    if (in_array($cuenta, $activas)) return true;
+  }
+  $det = $pdo->prepare('SELECT DISTINCT cuenta FROM detalle_pedido WHERE id_pedido=? AND cuenta IS NOT NULL');
+  $det->execute([$idPedido]);
+  $existentes = array_column($det->fetchAll(), 'cuenta');
+  return in_array($cuenta, $existentes);
 }

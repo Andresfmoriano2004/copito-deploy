@@ -7,14 +7,14 @@ if ($method === 'GET' && $path === 'pedidos/activos') {
   jsonResponse(array_map(fn($r) => [
     'id' => $r['id_pedido'], 'lugar' => $r['lugar'], 'cliente' => $r['cliente'] ?? '',
     'estado' => $r['estado'],
-    'estadoMesa' => (float)($r['total_pagado'] ?? 0) > 0 ? 'En pago' : 'Ocupada',
+    'estadoMesa' => (float)$r['total'] > 0 && (float)($r['total_pagado'] ?? 0) >= (float)$r['total'] - 0.01 ? 'Pagada' : ((float)($r['total_pagado'] ?? 0) > 0 ? 'En pago' : 'Ocupada'),
     'fechaCreacion' => fmtFechaBogota($r['fecha_creacion']),
     'horaCreacion' => fmtHoraBogota($r['fecha_creacion']),
     'fechaHoraCreacion' => fmtFechaHoraBogota($r['fecha_creacion']),
     'fechaCreacionISO' => $r['fecha_creacion'],
     'total' => (float)$r['total'],
     'totalPagado' => (float)($r['total_pagado'] ?? 0),
-    'saldo' => max(0, (float)$r['total'] - (float)($r['total_pagado'] ?? 0))
+    'saldo' => max(0, round((float)$r['total'] - (float)($r['total_pagado'] ?? 0), 2))
   ], $rows));
 }
 
@@ -33,6 +33,7 @@ if ($method === 'GET' && $path === 'pedidos/historial') {
   $mapHist = fn($r) => [
     'id' => $r['id_pedido'], 'lugar' => $r['lugar'], 'cliente' => $r['cliente'] ?? '',
     'estado' => $r['estado'],
+    'cancelacionMotivo' => $r['cancelacion_motivo'] ?? null,
     'fechaCreacion' => fmtFechaBogota($r['fecha_creacion']),
     'horaCreacion' => fmtHoraBogota($r['fecha_creacion']),
     'fechaHoraCreacion' => fmtFechaHoraBogota($r['fecha_creacion']),
@@ -46,14 +47,14 @@ if ($method === 'GET' && $path === 'pedidos/historial') {
     $countStmt = $pdo->prepare("SELECT COUNT(*) FROM pedidos WHERE $where");
     $countStmt->execute($params);
     $total = (int)$countStmt->fetchColumn();
-    $stmt = $pdo->prepare("SELECT id_pedido, lugar, cliente, estado, fecha_creacion, fecha_cierre, total, metodo_pago, vendedor FROM pedidos WHERE $where ORDER BY id_pedido DESC LIMIT {$pg['limit']} OFFSET {$pg['offset']}");
+    $stmt = $pdo->prepare("SELECT id_pedido, lugar, cliente, estado, fecha_creacion, fecha_cierre, total, metodo_pago, vendedor, cancelacion_motivo FROM pedidos WHERE $where ORDER BY id_pedido DESC LIMIT {$pg['limit']} OFFSET {$pg['offset']}");
     $stmt->execute($params);
     pagedResponse(array_map($mapHist, $stmt->fetchAll()), $total, $pg['page'], $pg['limit']);
   }
   $offset = max(0, (int)($_GET['offset'] ?? 0));
   $limit = min(500, max(1, (int)($_GET['limit'] ?? 200)));
 
-  $stmt = $pdo->prepare("SELECT id_pedido, lugar, cliente, estado, fecha_creacion, fecha_cierre, total, metodo_pago, vendedor FROM pedidos WHERE $where ORDER BY id_pedido DESC LIMIT $limit OFFSET $offset");
+  $stmt = $pdo->prepare("SELECT id_pedido, lugar, cliente, estado, fecha_creacion, fecha_cierre, total, metodo_pago, vendedor, cancelacion_motivo FROM pedidos WHERE $where ORDER BY id_pedido DESC LIMIT $limit OFFSET $offset");
   $stmt->execute($params);
   jsonResponse(array_map($mapHist, $stmt->fetchAll()));
 }

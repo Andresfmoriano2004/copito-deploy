@@ -13,14 +13,13 @@ if ($method === 'GET' && $path === 'unidades') {
 
 // POST /api/unidades
 if ($method === 'POST' && $path === 'unidades') {
-  $nombre = trim($body['nombre'] ?? '');
-  if (!$nombre) jsonError('Nombre requerido');
+  $v = validate($body, ['nombre' => 'required|string|max:100']);
   try {
-    db()->prepare('INSERT INTO unidades (nombre) VALUES (?)')->execute([$nombre]);
+    db()->prepare('INSERT INTO unidades (nombre) VALUES (?)')->execute([$v['nombre']]);
     jsonResponse(['success' => true, 'mensaje' => 'Unidad creada']);
   } catch (PDOException $e) {
     if ($e->getCode() == 23000) jsonError('La unidad ya existe');
-    jsonError($e->getMessage(), 500);
+    serverError($e);
   }
 }
 

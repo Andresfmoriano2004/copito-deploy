@@ -13,14 +13,13 @@ if ($method === 'GET' && $path === 'grupos') {
 
 // POST /api/grupos
 if ($method === 'POST' && $path === 'grupos') {
-  $nombre = trim($body['nombre'] ?? '');
-  if (!$nombre) jsonError('Nombre requerido');
+  $v = validate($body, ['nombre' => 'required|string|max:100']);
   try {
-    db()->prepare('INSERT INTO grupos (nombre) VALUES (?)')->execute([$nombre]);
+    db()->prepare('INSERT INTO grupos (nombre) VALUES (?)')->execute([$v['nombre']]);
     jsonResponse(['success' => true, 'mensaje' => 'Grupo creado']);
   } catch (PDOException $e) {
     if ($e->getCode() == 23000) jsonError('El grupo ya existe');
-    jsonError($e->getMessage(), 500);
+    serverError($e);
   }
 }
 

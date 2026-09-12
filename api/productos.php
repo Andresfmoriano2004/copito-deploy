@@ -98,8 +98,8 @@ if ($method === 'POST' && $path === 'productos') {
     'costo' => 'numeric|min:0', 'stockInicial' => 'numeric|min:0',
   ]);
   $unidad = $v['unidad'] ?: 'Unidad'; $grupo = $v['grupo'] ?: '';
-  $stockMinimo = (float)($v['stockMinimo'] ?? 0); $precio = (float)($v['precio'] ?? 0);
-  $costo = (float)($v['costo'] ?? 0); $stockInicial = (float)($v['stockInicial'] ?? 0);
+  $stockMinimo = (float)($v['stockMinimo'] ?? 0); $precio = round((float)($v['precio'] ?? 0));
+  $costo = round((float)($v['costo'] ?? 0)); $stockInicial = (float)($v['stockInicial'] ?? 0);
 
   try {
     $stmt = db()->prepare('INSERT INTO productos (codigo, nombre, unidad, grupo, stock_minimo, precio, costo) VALUES (?,?,?,?,?,?,?)');
@@ -126,7 +126,7 @@ if ($method === 'PUT' && preg_match('#^productos/(.+)$#', $path, $m)) {
     if (isset($body[$f])) { $sets[] = "$f=?"; $vals[] = $body[$f]; }
   }
   foreach (['stockMinimo' => 'stock_minimo', 'precio' => 'precio', 'costo' => 'costo'] as $js => $db) {
-    if (isset($body[$js])) { $sets[] = "$db=?"; $vals[] = (float)$body[$js]; }
+    if (isset($body[$js])) { $sets[] = "$db=?"; $vals[] = in_array($js, ['precio', 'costo'], true) ? round((float)$body[$js]) : (float)$body[$js]; }
   }
   if (!$sets) jsonError('Nada que actualizar');
   $vals[] = $codigo;

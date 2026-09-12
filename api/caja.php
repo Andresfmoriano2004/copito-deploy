@@ -13,11 +13,11 @@ function tipoPago($metodo) {
 }
 
 function computeResumen($c, $movs) {
-  $r = ['montoInicial' => (float)$c['monto_inicial'], 'totalVentas' => 0, 'totalIngresos' => 0, 'totalEgresos' => 0,
+  $r = ['montoInicial' => round((float)$c['monto_inicial'], 2), 'totalVentas' => 0, 'totalIngresos' => 0, 'totalEgresos' => 0,
     'efectivoVentas' => 0, 'efectivoIngresos' => 0, 'efectivoEgresos' => 0,
     'bancarioVentas' => 0, 'bancarioIngresos' => 0, 'bancarioEgresos' => 0, 'totalFisico' => 0, 'totalBancario' => 0, 'movimientos' => []];
   foreach ($movs as $m) {
-    $monto = (float)$m['monto']; $tp = $m['tipo_pago'] ?: tipoPago($m['metodo_pago']);
+    $monto = round((float)$m['monto'], 2); $tp = $m['tipo_pago'] ?: tipoPago($m['metodo_pago']);
     $key = $tp === 'FISICO' ? 'efectivo' : 'bancario';
     if ($m['tipo'] === 'VENTA') { $r['totalVentas'] += $monto; $r[$key . 'Ventas'] += $monto; }
     elseif ($m['tipo'] === 'INGRESO') { $r['totalIngresos'] += $monto; $r[$key . 'Ingresos'] += $monto; }
@@ -28,9 +28,9 @@ function computeResumen($c, $movs) {
       'fechaCorta' => fmtFechaBogota($m['fecha']), 'hora' => fmtHoraBogota($m['fecha']),
       'fechaHora' => fmtFechaHoraBogota($m['fecha'])];
   }
-  $r['totalFisico'] = $r['montoInicial'] + $r['efectivoVentas'] + $r['efectivoIngresos'] - $r['efectivoEgresos'];
-  $r['totalBancario'] = $r['bancarioVentas'] + $r['bancarioIngresos'] - $r['bancarioEgresos'];
-  $r['totalEsperado'] = $r['totalFisico'] + $r['totalBancario'];
+  $r['totalFisico'] = round($r['montoInicial'] + $r['efectivoVentas'] + $r['efectivoIngresos'] - $r['efectivoEgresos'], 2);
+  $r['totalBancario'] = round($r['bancarioVentas'] + $r['bancarioIngresos'] - $r['bancarioEgresos'], 2);
+  $r['totalEsperado'] = round($r['totalFisico'] + $r['totalBancario'], 2);
   return $r;
 }
 
@@ -48,7 +48,7 @@ if ($method === 'GET' && $path === 'caja/activa') {
 // POST /api/caja/abrir (Fase 3: validación central, mismo contrato)
 if ($method === 'POST' && $path === 'caja/abrir') {
   validate($body, ['montoInicial' => 'numeric|min:0']);
-  $monto = (float)($body['montoInicial'] ?? 0);
+  $monto = round((float)($body['montoInicial'] ?? 0));
   if ($monto < 0) jsonError('El monto inicial no puede ser negativo');
   $abierta = $pdo->query("SELECT id FROM caja WHERE estado='Abierta' LIMIT 1")->fetch();
   if ($abierta) jsonError('Ya hay una caja abierta');
@@ -61,8 +61,10 @@ if ($method === 'POST' && $path === 'caja/abrir') {
 // POST /api/caja/movimiento (Fase 3: validación central, mismo contrato)
 if ($method === 'POST' && $path === 'caja/movimiento') {
   validate($body, ['tipo' => 'in:INGRESO,EGRESO', 'monto' => 'numeric|min:0.01', 'descripcion' => 'string|max:255']);
-  $tipo = $body['tipo'] ?? ''; $metodo = normalizarMetodoPago($body['metodoPago'] ?? 'Efectivo');
-  $desc = trim($body['descripcion'] ?? ''); $monto = (float)($body['monto'] ?? 0);
+  $tipo = $body['tipo'] ?? '';
+  $metodo = normalizarMetodoPago($body['metodoPago'] ?? 'Efectivo');
+  $desc = trim($body['descripcion'] ?? '');
+  $monto = round((float)($body['monto'] ?? 0));
   if (!in_array($tipo, ['INGRESO', 'EGRESO'], true) || $monto <= 0) jsonError('Tipo y monto válidos requeridos');
   $caja = $pdo->query("SELECT id FROM caja WHERE estado='Abierta' LIMIT 1")->fetch();
   if (!$caja) jsonError('No hay caja abierta');
@@ -91,20 +93,25 @@ if ($method === 'GET' && $path === 'caja/resumen') {
 
 // POST /api/caja/cerrar
 if ($method === 'POST' && $path === 'caja/cerrar') {
-  $montoFisico = (float)($body['montoFisico'] ?? 0); $notas = $body['notas'] ?? '';
+  $montoFisico = round((float)($body['montoFisico'] ?? 0));
+  $notas = trim($body['notas'] ?? '');
+  if ($montoFisico < 0) jsonError('El monto físico no puede ser negativo');
+  if (mb_strlen($notas) > 500) jsonError('Las notas no pueden exceder 500 caracteres');
+
   $caja = $pdo->query("SELECT * FROM caja WHERE estado='Abierta' ORDER BY id DESC LIMIT 1")->fetch();
   if (!$caja) jsonError('No hay caja abierta');
   $movs = $pdo->prepare('SELECT * FROM caja_movimientos WHERE id_caja=?');
   $movs->execute([$caja['id']]);
   $r = computeResumen($caja, $movs->fetchAll());
-  $diferencia = $montoFisico - $r['totalFisico'];
+  $diferencia = round($montoFisico - $r['totalFisico'], 2);
   $pdo->prepare('UPDATE caja SET fecha_cierre=NOW(), monto_esperado=?, monto_fisico=?, diferencia=?, estado=?, notas=? WHERE id=?')->execute([$r['totalEsperado'], $montoFisico, $diferencia, 'Cerrada', $notas, $caja['id']]);
-  auditLog($authUser, 'CERRAR_CAJA', null, null, ['cajaId' => $caja['id'], 'diferencia' => $diferencia]);
+  auditLog($authUser, 'CERRAR_CAJA', null, null, ['cajaId' => $caja['id'], 'montoEsperado' => $r['totalEsperado'], 'montoFisico' => $montoFisico, 'diferencia' => $diferencia, 'notas' => $notas]);
   jsonResponse(['success' => true, 'mensaje' => 'Caja cerrada', 'resumen' => [
     'montoInicial' => $r['montoInicial'], 'totalVentas' => $r['totalVentas'],
     'totalIngresos' => $r['totalIngresos'], 'totalEgresos' => $r['totalEgresos'],
     'totalFisico' => $r['totalFisico'], 'totalBancario' => $r['totalBancario'],
-    'montoEsperado' => $r['totalEsperado'], 'montoFisico' => $montoFisico, 'diferencia' => $diferencia
+    'montoEsperado' => $r['totalEsperado'], 'montoFisico' => $montoFisico, 'diferencia' => $diferencia,
+    'notas' => $notas
   ]]);
 }
 

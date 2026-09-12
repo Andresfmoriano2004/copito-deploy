@@ -295,28 +295,61 @@
 
     .card-body {
       padding: 25px;
+      overflow: hidden;
     }
 
     .form-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 20px;
+      gap: 18px 20px;
       margin-bottom: 20px;
+    }
+
+    .form-grid .form-full {
+      grid-column: 1 / -1;
+    }
+
+    .form-grid .form-half {
+      grid-column: span 1;
+      min-width: 0;
+    }
+
+    @media (min-width: 769px) {
+      .form-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .form-grid .form-full {
+        grid-column: 1 / -1;
+      }
     }
 
     .form-group {
       display: flex;
       flex-direction: column;
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group:last-child {
+      margin-bottom: 0;
     }
 
     .form-group label {
       margin-bottom: 8px;
       font-weight: 600;
-      color: var(--primary);
+      color: var(--text);
       font-size: 0.9rem;
     }
 
+    .field-hint {
+      display: block;
+      margin-top: 4px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
     input, select, textarea {
+      box-sizing: border-box;
+      width: 100%;
       padding: 12px;
       border: 2px solid var(--primary-border);
       border-radius: var(--radius);
@@ -324,6 +357,7 @@
       font-family: var(--font);
       transition: border-color var(--transition), box-shadow var(--transition);
       background: var(--white);
+      color: var(--text);
     }
 
     input:focus, select:focus, textarea:focus {
@@ -462,12 +496,19 @@
     [data-theme="dark"] .stat-card { background: var(--surface); }
     [data-theme="dark"] .lugar-card { background: var(--surface); }
     [data-theme="dark"] .lugar-card.ocupada { background: #1A2E1A; border-color: var(--success); }
+    [data-theme="dark"] .lugar-card.en-pago { background: #2E2A1A; border-color: var(--warning); box-shadow: 0 0 12px rgba(255, 165, 0, 0.3); }
+    [data-theme="dark"] .lugar-card.pagada { background: #1A2A2E; border-color: var(--info); box-shadow: 0 0 10px rgba(33, 150, 243, 0.25); }
+    [data-theme="dark"] .lugar-card.cancelada { background: #2E1A1A; border-color: var(--danger); opacity: 0.6; }
     [data-theme="dark"] input, [data-theme="dark"] select, [data-theme="dark"] textarea { background: #18253A; color: #F8FAFC; border-color: #475569; }
     [data-theme="dark"] input::placeholder, [data-theme="dark"] textarea::placeholder { color: #94A3B8; opacity: 1; }
+    [data-theme="dark"] .form-group label { color: #E2E8F0; }
+    [data-theme="dark"] .field-hint { color: #94A3B8; }
+    [data-theme="dark"] .sidebar-toggle { background: transparent; color: #E2E8F0; }
+    [data-theme="dark"] .sidebar-toggle:hover { background: rgba(255,255,255,0.08); }
     [data-theme="dark"] table { background: var(--surface); }
-    [data-theme="dark"] th { background: var(--primary-bg-light); }
+    [data-theme="dark"] th { background: var(--primary-bg-light); color: var(--text); }
+    [data-theme="dark"] td { color: var(--text); }
     [data-theme="dark"] .item-row:nth-child(even) { background: var(--primary-bg-light); }
-    [data-theme="dark"] .menu-item { background: var(--surface); }
     [data-theme="dark"] .autocomplete-dropdown { background: var(--surface); }
     [data-theme="dark"] .autocomplete-item:hover { background: var(--primary-bg-light); }
     [data-theme="dark"] .content-body { background: var(--bg); }
@@ -670,18 +711,24 @@
 
       .menu-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        gap: 8px;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 10px;
       }
 
       .menu-item {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
         background: var(--white);
         border: 2px solid var(--primary-border);
         border-radius: var(--radius);
-        padding: 12px 10px;
+        padding: 14px 12px;
         text-align: center;
         cursor: pointer;
-        transition: all var(--transition);
+        transition: all 0.15s ease;
+        min-height: 80px;
+        font-family: inherit;
       }
 
       .menu-item:hover {
@@ -691,17 +738,78 @@
         box-shadow: var(--shadow-sm);
       }
 
+      .menu-item:active {
+        transform: scale(0.97);
+        box-shadow: none;
+      }
+
       .menu-item-nombre {
         font-weight: 600;
-        font-size: 0.9rem;
+        font-size: 0.95rem;
         color: var(--text);
-        margin-bottom: 4px;
+        margin-bottom: 6px;
+        line-height: 1.2;
       }
 
       .menu-item-precio {
-        font-weight: 700;
+        font-weight: 800;
         color: var(--success);
-        font-size: 1.05rem;
+        font-size: 1.1rem;
+      }
+
+      /* ─── Modal contenedor del menú ─── */
+      .modal-menu-container {
+        background: var(--white);
+        border-radius: 12px;
+        padding: 20px;
+        max-width: 700px;
+        width: 95%;
+        max-height: 85vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      }
+      .modal-menu-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+      }
+      .modal-menu-title {
+        color: var(--primary);
+        margin: 0;
+      }
+
+      /* ─── Modo oscuro: menú ─── */
+      [data-theme="dark"] .modal-menu-container {
+        background: var(--surface) !important;
+        border: 1px solid var(--border);
+      }
+      [data-theme="dark"] .modal-menu-title {
+        color: #60A5FA;
+      }
+      [data-theme="dark"] .menu-grupo-titulo {
+        color: #93C5FD;
+        background: rgba(37,99,235,0.12);
+        border-color: rgba(37,99,235,0.2);
+      }
+      [data-theme="dark"] .menu-item {
+        background: #1E293B;
+        border-color: #334155;
+      }
+      [data-theme="dark"] .menu-item:hover {
+        background: #334155;
+        border-color: #60A5FA;
+        box-shadow: 0 4px 12px rgba(96,165,250,0.15);
+      }
+      [data-theme="dark"] .menu-item:active {
+        background: #1E3A8A;
+        border-color: #3B82F6;
+      }
+      [data-theme="dark"] .menu-item-nombre {
+        color: #F1F5F9;
+      }
+      [data-theme="dark"] .menu-item-precio {
+        color: #34D399;
       }
 
     .lugar-card {
@@ -733,6 +841,33 @@
       border-color: var(--success);
       background: #f0fff4;
       border-width: 2px;
+    }
+
+    .lugar-card.en-pago {
+      border-color: var(--warning);
+      background: #fffbf0;
+      border-width: 3px;
+      box-shadow: 0 0 12px rgba(255, 165, 0, 0.25);
+      animation: pulse-border 2s infinite;
+    }
+
+    .lugar-card.pagada {
+      border-color: var(--info);
+      background: #f0f7ff;
+      border-width: 3px;
+      box-shadow: 0 0 10px rgba(33, 150, 243, 0.2);
+    }
+
+    .lugar-card.cancelada {
+      border-color: var(--danger);
+      background: #fff5f5;
+      border-width: 2px;
+      opacity: 0.6;
+    }
+
+    @keyframes pulse-border {
+      0%, 100% { box-shadow: 0 0 12px rgba(255, 165, 0, 0.25); }
+      50% { box-shadow: 0 0 20px rgba(255, 165, 0, 0.45); }
     }
 
     .lugar-card .lugar-icon {
@@ -819,14 +954,19 @@
     }
 
     .pedido-total-box {
-      background: var(--success);
-      color: white;
-      padding: 12px 24px;
-      border-radius: var(--radius);
-      font-size: 1.5rem;
-      font-weight: 700;
-      box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+      background: linear-gradient(135deg, #16a34a 0%, #15803d 60%, #166534 100%);
+      color: #fff;
+      padding: 16px 24px;
+      border-radius: 12px;
+      font-size: 1.7rem;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+      text-shadow: 0 1px 3px rgba(0,0,0,.35);
+      border: 2px solid #bbf7d0;
+      box-shadow: 0 4px 18px rgba(22,163,74,.5);
+      animation: glow-total 2.2s infinite;
     }
+    @keyframes glow-total { 0%,100% { box-shadow: 0 4px 14px rgba(22,163,74,.4); } 50% { box-shadow: 0 4px 26px rgba(22,163,74,.75); } }
 
     .items-list {
       border: 1px solid var(--primary-border);
@@ -919,7 +1059,7 @@
     .item-nombre { font-weight: 500; }
     .item-cantidad, .item-precio, .item-subtotal { text-align: right; font-weight: 600; }
     .item-acciones { text-align: center; }
-    .pedido-total-box { text-align: right; font-size: 1.5rem; font-weight: 700; color: var(--primary-dark); padding: 15px 0; border-top: 2px solid var(--primary); margin-top: 15px; }
+    .pedido-total-box { text-align: right; font-size: 1.5rem; font-weight: 700; padding: 15px 24px; margin-top: 15px; }
 
     .btn-icon.editar:hover { background: var(--primary-bg-light); }
     .btn-icon.eliminar:hover { background: var(--danger-bg); }
@@ -986,6 +1126,9 @@
 
       .form-grid {
         grid-template-columns: 1fr;
+      }
+      .form-grid .form-half {
+        grid-column: 1;
       }
 
       .actions {
@@ -1226,6 +1369,32 @@
       padding-left: 24px;
     }
 
+    /* ─── Comanda: tipografía agrupada para lectura a distancia ─── */
+    .ticket-name-comanda {
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 0.3px;
+      color: #000;
+    }
+    .ticket-qty-comanda {
+      font-size: 15px;
+      font-weight: 900;
+      color: #000;
+    }
+    .ticket-nota-comanda {
+      font-size: 13px;
+      font-weight: 700;
+      font-style: italic;
+      color: #111;
+      padding-left: 24px;
+      margin-top: 2px;
+    }
+    .ticket-row-comanda {
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px dashed #ccc;
+    }
+
     .ticket-row-total {
       display: flex;
       justify-content: space-between;
@@ -1362,7 +1531,8 @@
       white-space: nowrap;
       border: 1px solid transparent;
     }
-    .badge-abierto   { background: var(--warning-bg); color: var(--warning-text); border-color: var(--warning-border); }
+    .badge-abierto   { background: #2563EB; color: #fff; border-color: #1D4ED8; font-weight: 800; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 0 10px rgba(37,99,235,.45); animation: pulse-abierto 1.6s infinite; }
+    @keyframes pulse-abierto { 0%,100% { box-shadow: 0 0 6px rgba(37,99,235,.3); transform: scale(1); } 50% { box-shadow: 0 0 16px rgba(37,99,235,.6); transform: scale(1.06); } }
     .badge-cerrado   { background: var(--success-bg); color: var(--success-text); border-color: var(--success-border); }
     .badge-cancelado { background: var(--danger-bg);  color: var(--danger-text);  border-color: var(--danger-border); }
     .badge-ocupada   { background: var(--danger-bg);  color: var(--danger-text);  border-color: var(--danger-border); }

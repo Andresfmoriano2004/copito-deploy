@@ -204,7 +204,7 @@ async function cerrarCuentaPedido(pedidoId, cuenta, pagos, cambio) { return apiP
 // Abono parcial (acumulable, ilimitado): { cuenta|null, pagos } → { acumulado, pendiente, cuentaCerrada, pedidoCerrado }
 async function abonarCuenta(pedidoId, cuenta, pagos) { return apiPost(`/pedidos/${pedidoId}/abonar`, { cuenta, pagos }); }
 async function cerrarItemPedido(pedidoId, detalleId, pagos, cambio) { return apiPost(`/pedidos/${pedidoId}/pagar-item`, { detalleId, pagos, cambio }); }
-async function cerrarItemsPedido(pedidoId, detalleIds, pagos, cambio) { return apiPost(`/pedidos/${pedidoId}/pagar-items`, { detalleIds, pagos, cambio }); }
+async function cerrarItemsPedido(pedidoId, detalleIds, pagos, cambio, cuenta) { return apiPost(`/pedidos/${pedidoId}/pagar-items`, { detalleIds, pagos, cambio, cuenta }); }
 
 // ─── Reportes ──────────────────────────────────────
 async function obtenerReporteVentas(desde, hasta) {

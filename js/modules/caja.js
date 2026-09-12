@@ -102,7 +102,7 @@ Object.assign(App, {
 
 
   abrirCajaHandler() {
-    const monto = parseFloat(document.getElementById('cajaMontoInicial')?.value) || 0;
+    const monto = Math.round(parseFloat(document.getElementById('cajaMontoInicial')?.value) || 0);
     abrirCaja(monto)
       .then(res => { this.showMessage('cajaMsg', res.mensaje, 'success'); this.cargarCaja(); })
       .catch(err => { this.showMessage('cajaMsg', 'Error: ' + err.message, 'error'); });
@@ -112,7 +112,7 @@ Object.assign(App, {
   registrarMovCaja() {
     const tipo = document.getElementById('cajaMovTipo')?.value;
     const metodoPago = document.getElementById('cajaMovMetodo')?.value || 'Efectivo';
-    const monto = parseFloat(document.getElementById('cajaMovMonto')?.value);
+    const monto = Math.round(parseFloat(document.getElementById('cajaMovMonto')?.value) || 0);
     const descripcion = document.getElementById('cajaMovDesc')?.value?.trim() || '';
     if (!tipo || !monto) return this.showMessage('cajaMovMsg', 'Complete tipo y monto', 'error');
     registrarMovimientoCaja({ tipo, metodoPago, monto, descripcion })
@@ -169,7 +169,7 @@ Object.assign(App, {
 
 
   confirmarCierreCaja() {
-    const montoFisico = parseFloat(document.getElementById('cajaMontoFisico')?.value) || 0;
+    const montoFisico = Math.round(parseFloat(document.getElementById('cajaMontoFisico')?.value) || 0);
     const notas = document.getElementById('cajaNotas')?.value?.trim() || '';
     cerrarCaja(montoFisico, notas)
       .then(res => {
@@ -193,7 +193,7 @@ Object.assign(App, {
       const el = document.getElementById('cajaHistorial');
       if (!el) return;
       if (!rows || !rows.length) { el.innerHTML = '<div class="message info">No hay cierres registrados</div>'; return; }
-      el.innerHTML = `<div class="table-container"><table class="tabla-responsive"><thead><tr><th>Apertura</th><th>Cierre</th><th>Inicial</th><th>Esperado</th><th>Físico</th><th>Bancario</th><th>Diferencia</th></tr></thead>
+      el.innerHTML = `<div class="table-container"><table class="tabla-responsive"><thead><tr><th>Apertura</th><th>Cierre</th><th>Inicial</th><th>Esperado</th><th>Físico</th><th>Bancario</th><th>Diferencia</th><th>Notas</th></tr></thead>
         <tbody>${rows.map(r => {
           const dif = parseFloat(r.diferencia || 0);
           const difBadge = `<span class="badge ${dif === 0 ? 'badge-cerrado' : (dif > 0 ? 'badge-ingreso' : 'badge-cancelado')}">${this.fmt(dif)}</span>`;
@@ -205,6 +205,7 @@ Object.assign(App, {
           <td data-label="Físico">${this.fmt(r.montoFisico)}</td>
           <td data-label="Bancario">🏦 ${this.fmt(r.totalBancario ?? (parseFloat(r.montoEsperado || 0) - parseFloat(r.montoFisico || 0) + parseFloat(r.diferencia || 0)))}</td>
           <td data-label="Diferencia">${difBadge}</td>
+          <td data-label="Notas" style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${this.escapeHtml(r.notas || '')}">${this.escapeHtml(r.notas || '—')}</td>
         </tr>`; }).join('')}</tbody></table></div>`;
     }).catch(() => {});
   }

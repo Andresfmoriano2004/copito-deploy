@@ -3,8 +3,41 @@
 // Se carga DESPUÉS de js/app.js y extiende la fachada global App.
 Object.assign(App, {
 
+  // ─── Precisión monetaria: trabajar en centavos internamente ──────────
+  // Convierte cualquier valor (string, number, null, undefined) a centavos enteros.
+  // Ej: toCents(10000) → 1000000, toCents("10000.50") → 1000050
+  toCents(val) {
+    if (val === null || val === undefined || val === '') return 0;
+    const s = String(val).replace(/[^0-9.\-]/g, '');
+    const n = parseFloat(s);
+    return isNaN(n) ? 0 : Math.round(n * 100);
+  },
+
+  // Convierte centavos a decimal (number) para mostrar
+  fromCents(cents) {
+    return (typeof cents === 'number' && !isNaN(cents)) ? cents / 100 : 0;
+  },
+
+  // Suma segura de valores monetarios via centavos.
+  // Ej: sumMoney(10000, 5000) → 15000 (no 14999.99999)
+  sumMoney(...values) {
+    let totalCents = 0;
+    for (const v of values) totalCents += this.toCents(v);
+    return this.fromCents(totalCents);
+  },
+
+  // Resta segura
+  subMoney(a, b) {
+    return this.fromCents(this.toCents(a) - this.toCents(b));
+  },
+
+  // Redondea a 2 decimales usando centavos (elimina drift de float)
+  roundMoney(val) {
+    return this.fromCents(this.toCents(val));
+  },
+
   fmt(n) {
-    return this.CURRENCY.symbol + ' ' + Number(n || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return this.CURRENCY.symbol + ' ' + Math.round(Number(n || 0)).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   },
 
 // ─── Fechas centralizadas (America/Bogota) ─────────────────────────────
