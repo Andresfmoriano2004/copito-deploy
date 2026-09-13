@@ -1107,6 +1107,10 @@
         left: 0;
       }
 
+      .sidebar-header {
+        padding-left: 60px;
+      }
+
       .sidebar-overlay.visible {
         display: block;
       }
@@ -1117,7 +1121,7 @@
       }
 
       .content-header {
-        padding: 60px 20px 20px;
+        padding: 60px 20px 20px 60px;
       }
 
       .content-body {
@@ -1424,6 +1428,102 @@
     .ticket-bye-sub {
       font-size: 11px;
       margin-top: 2px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       TRANSICIONES — Solo hover/focus/active, sin keyframes
+       ═══════════════════════════════════════════════════════════ */
+
+    /* ─── Botones ─── */
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    /* ─── Tarjetas ─── */
+    .card {
+      transition: box-shadow 0.2s ease, transform 0.2s ease;
+    }
+    .card:hover {
+      box-shadow: var(--shadow-lg);
+    }
+
+    /* ─── Lugar cards ─── */
+    .lugar-card {
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .lugar-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    /* ─── Stat cards ─── */
+    .stat-card {
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    /* ─── Menú productos ─── */
+    .menu-item {
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+    }
+    .menu-item:hover {
+      border-color: var(--primary-light);
+      background: var(--primary-bg-light);
+    }
+    .menu-item:active {
+      transform: scale(0.98);
+    }
+
+    /* ─── Nav links ─── */
+    .nav-link {
+      transition: background var(--transition), color var(--transition);
+    }
+
+    /* ─── Inputs focus ─── */
+    .search-box input:focus {
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    /* ─── Sidebar toggle ─── */
+    .sidebar-toggle {
+      transition: background var(--transition);
+    }
+
+    /* ─── Búsqueda ─── */
+    .search-box input {
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+
+    /* ─── Skeleton loader ─── */
+    .skeleton {
+      background: var(--primary-bg-light);
+      border-radius: var(--radius);
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       TABLETA (≤768px)
+       ═══════════════════════════════════════════════════════════ */
+    @media (max-width: 768px) {
+      .card:hover { box-shadow: var(--shadow-md); }
+      .lugar-card:hover { transform: none; }
+      .stat-card:hover { transform: none; }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       MÓVIL (≤480px)
+       ═══════════════════════════════════════════════════════════ */
+    @media (max-width: 480px) {
+      .card:hover { box-shadow: none; }
+      .lugar-card:hover { transform: none; }
+      .stat-card:hover { transform: none; }
+      .menu-item:hover { background: transparent; }
     }
 
     /* ─── Reglas de Impresión POS Térmica y General ──────────── */

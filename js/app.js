@@ -70,8 +70,7 @@ const App = {
     });
     document.querySelectorAll('.sidebar nav button, .nav-link').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.tab === tab);
-      if (btn.dataset.tab === tab) btn.setAttribute('aria-selected', 'true');
-      else btn.setAttribute('aria-selected', 'false');
+      btn.setAttribute('aria-selected', btn.dataset.tab === tab ? 'true' : 'false');
     });
     const titleEl = document.getElementById('pageTitle');
     if (titleEl) titleEl.textContent = this.TAB_TITLES[tab] || tab;
