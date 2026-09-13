@@ -117,9 +117,9 @@ Object.assign(App, {
       <td data-label="Stock" style="color:${p.stockActual < p.stockMinimo ? 'var(--danger)' : 'var(--success)'};font-weight:600;">${p.stockActual} <small style="color:var(--text-muted);font-weight:400;">(mín ${p.stockMinimo})</small></td>
       <td data-label="Precio">${this.fmt(p.precio)}</td>
       <td data-label="Estado">${p.stockActual <= 0 ? '<span class="badge badge-cancelado">Sin stock</span>' : (p.stockActual < p.stockMinimo ? '<span class="badge badge-bajo">⚠ Bajo</span>' : '<span class="badge badge-ok">✔ OK</span>')}</td>
-      <td data-label="Acciones" class="prod-acciones"><button class="btn-icon" data-action="view-product" data-codigo="${this.escapeHtml(p.codigo)}" title="Ver detalle">👁️</button>
-          <button class="btn-icon" data-action="edit-product" data-codigo="${this.escapeHtml(p.codigo)}" title="Editar">✏️</button>
-          <button class="btn-icon" data-action="delete-product" data-codigo="${this.escapeHtml(p.codigo)}" data-nombre="${this.escapeHtml(p.nombre)}" title="Eliminar">🗑️</button></td>
+      <td data-label="Acciones" class="prod-acciones"><button class="btn-icon" data-action="view-product" data-codigo="${this.escapeHtml(p.codigo)}" title="Ver detalle"><img width="25" height="25" src="https://img.icons8.com/office/30/visible--v1.png" alt="visible--v1"/></button>
+          <button class="btn-icon" data-action="edit-product" data-codigo="${this.escapeHtml(p.codigo)}" title="Editar"><img width="25" height="25" src="https://img.icons8.com/office/30/create-new.png" alt="create-new"/></button>
+          <button class="btn-icon" data-action="delete-product" data-codigo="${this.escapeHtml(p.codigo)}" data-nombre="${this.escapeHtml(p.nombre)}" title="Eliminar"><img width="25" height="25" src="https://img.icons8.com/office/30/delete--v1.png" alt="delete--v1"/></button></td>
     </tr>`;
   },
 
