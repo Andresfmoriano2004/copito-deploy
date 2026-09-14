@@ -5,9 +5,11 @@ function generarId() {
   return 'PED-' . date('ymd') . '-' . strtoupper(substr(uniqid(), -5));
 }
 
-function tipoPago($metodo) {
-  $fisico = ['Efectivo'];
-  return in_array($metodo, $fisico) ? 'FISICO' : 'BANCARIO';
+if (!function_exists('tipoPago')) {
+  function tipoPago($metodo) {
+    $m = function_exists('normalizarMetodoPago') ? normalizarMetodoPago($metodo) : $metodo;
+    return $m === 'Efectivo' ? 'FISICO' : 'BANCARIO';
+  }
 }
 
 function registrarPagos($pdo, $idPedido, $cuenta, $pagos) {

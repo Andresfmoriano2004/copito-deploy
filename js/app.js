@@ -15,7 +15,7 @@ const App = {
     user: null
   },
 
-  TABS: ['dashboard', 'productos', 'movimientos', 'proveedores', 'inventario', 'reportes', 'buscar', 'mesas', 'caja', 'configuracion'],
+  TABS: ['dashboard', 'productos', 'movimientos', 'proveedores', 'inventario', 'reportes', 'materia-prima', 'recetas', 'angie', 'buscar', 'mesas', 'caja', 'configuracion'],
 
   TAB_TITLES: {
     dashboard: 'Dashboard',
@@ -24,6 +24,9 @@ const App = {
     proveedores: 'Proveedores',
     inventario: 'Inventario',
     reportes: 'Reportes',
+    'materia-prima': 'Materia Prima',
+    recetas: 'Recetas',
+    angie: 'Gasto Personal',
     buscar: 'Buscar',
     mesas: 'Mesas / Pedidos',
     caja: 'Caja',
@@ -37,6 +40,9 @@ const App = {
     proveedores: 'cargarProveedores',
     inventario: 'cargarInventario',
     reportes: 'cargarReportes',
+    'materia-prima': 'cargarMateriaPrima',
+    recetas: 'cargarRecetas',
+    angie: 'cargarAngie',
     buscar: 'cargarBuscar',
     mesas: 'cargarVistaMesas',
     caja: 'cargarCaja',
@@ -64,6 +70,7 @@ const App = {
 
   showTab(tab) {
     this.state.currentTab = tab;
+    try { localStorage.setItem('copito_tab', tab); } catch(e) {}
     this.TABS.forEach(t => {
       const section = document.getElementById(t);
       if (section) section.style.display = t === tab ? 'block' : 'none';
@@ -120,13 +127,14 @@ const App = {
       'cerrar-modal': () => this.cerrarModal(),
       'refresh-mesas': () => this.cargarVistaMesas(),
       'crear-pedido': () => this.crearPedido(),
-      'agregar-item': () => this.mostrarMenuProductos(),
+      'agregar-item': () => this.mostrarPosOrder(this.state.currentPedidoId),
       'seleccionar-producto-menu': () => this.seleccionarProductoMenu(actionBtn.dataset.codigo),
       'guardar-item-menu': () => this.guardarItemMenu(),
       'eliminar-item': () => this.confirmarEliminarItem(actionBtn.dataset.detalleid),
       'editar-producto': () => this.mostrarFormModificarItem(actionBtn.dataset.detalleid),
       'guardar-mod-item': () => this.guardarModItem(actionBtn.dataset.detalleid),
       'cerrar-pedido': () => this.confirmarCerrarPedido(),
+      'confirmar-cerrar-pedido': () => this.confirmarCerrarPedidoPago(),
       'cancelar-pedido': () => this.confirmarCancelarPedido(),
       'editar-pedido': () => this.mostrarFormEditarPedido(),
       'guardar-edicion-pedido': () => this.guardarEdicionPedido(),
@@ -166,6 +174,7 @@ const App = {
       'registrar-mov-caja': () => this.registrarMovCaja(),
       'cerrar-caja-modal': () => this.cerrarCajaModal(),
       'confirmar-cierre-caja': () => this.confirmarCierreCaja(),
+      'propina-general': () => { if (this.mostrarModalPropinaGeneral) this.mostrarModalPropinaGeneral(); },
       'generar-reporte-ventas': () => this.generarReporteVentas(),
       'generar-reporte-semanal': () => this.generarReporteVentasSemanal(),
       'export-excel-movimientos': () => this.exportarExcel('movimientos'),
@@ -202,7 +211,43 @@ const App = {
         ['movCantidad','movNota'].forEach(id => {
           const el = document.getElementById(id); if (el) el.value = '';
         });
-      }
+      },
+      // ─── Materia Prima ───
+      'mp-nuevo': () => this.mpMostrarFormNuevo(),
+      'mp-guardar': () => this.mpGuardar(),
+      'mp-editar': () => this.mpMostrarFormEditar(actionBtn.dataset.codigo),
+      'mp-actualizar': () => this.mpActualizar(actionBtn.dataset.codigo),
+      'mp-movimiento': () => this.mpMostrarMovimiento(actionBtn.dataset.codigo, actionBtn.dataset.tipo),
+      'mp-guardar-mov': () => this.mpGuardarMovimiento(actionBtn.dataset.codigo, actionBtn.dataset.tipo),
+      'mp-historial': () => this.mpMostrarHistorial(actionBtn.dataset.codigo),
+      'mp-eliminar': () => this.mpEliminar(actionBtn.dataset.codigo, actionBtn.dataset.nombre),
+      // ─── Recetas ───
+      'receta-nueva': () => this.recetaMostrarFormNueva(),
+      'receta-guardar': () => this.recetaGuardar(),
+      'receta-editar': () => this.recetaMostrarFormEditar(actionBtn.dataset.id, parseFloat(actionBtn.dataset.cantidad), actionBtn.dataset.notas),
+      'receta-actualizar': () => this.recetaActualizar(actionBtn.dataset.id),
+      'receta-eliminar': () => this.recetaEliminar(actionBtn.dataset.id),
+      // ─── Angie ───
+      'angie-registrar': () => this.angieRegistrar(),
+      'angie-eliminar': () => this.angieEliminar(actionBtn.dataset.id),
+      // ─── POS Split-Screen ───
+      'pos-add': () => this._posAdd(actionBtn.dataset.codigo),
+      'pos-qty': () => this._posQty(actionBtn.dataset.codigo, parseInt(actionBtn.dataset.d)),
+      'pos-cat': () => this._posSetCat(actionBtn.dataset.cat),
+      'pos-cobrar': () => this._posCobrar(),
+      'pos-comanda': () => this._posComanda(),
+      'pos-cancelar': () => this._posCancelar(),
+      'pos-split': () => this._posSplit(),
+      'pos-split-assign': () => this._posSplitAssign(parseInt(actionBtn.dataset.idx), actionBtn.dataset.cuenta),
+      'pos-split-confirm': () => this._posSplitConfirm(),
+      'pos-split-cancel': () => this._posSplitCancel(),
+      'pos-split-exit': () => { this._pos.splitMode = false; this._pos.cart.forEach(i => { delete i.cuenta; }); this._posRenderTicket(); },
+      'pos-cobrar-cuenta': () => this._posCobrarCuenta(actionBtn.dataset.cuenta),
+      'pos-volver-detalle': () => this.cargarVistaMesas(),
+      'pos-toggle-pagos': () => { const el = document.getElementById('posPagosList'); if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none'; },
+      'pos-cancelar-pedido': () => this._posCancelarPedido(),
+      'pos-editar-pedido': () => this._posEditarPedido(),
+      'pos-guardar-edicion': () => this._posGuardarEdicion(),
     };
     if (actions[action]) actions[action]();
   },
@@ -341,5 +386,7 @@ App.init = function() {
     if (!App.state.isMobile) { const s = document.querySelector('.sidebar'); if (s) s.classList.remove('open'); }
   });
 
-  App.showTab('dashboard');
+  const savedTab = localStorage.getItem('copito_tab');
+  const initialTab = (savedTab && App.TABS.includes(savedTab)) ? savedTab : 'dashboard';
+  App.showTab(initialTab);
 };

@@ -360,8 +360,7 @@ Object.assign(App, {
   },
 
 
-  // ================== EXPORTAR EXCEL ==================
-  exportarExcel(tipo) {
+  async exportarExcel(tipo) {
     let desde, hasta;
     if (tipo === 'movimientos') {
       desde = document.getElementById('fechaDesde')?.value;
@@ -374,7 +373,34 @@ Object.assign(App, {
     params.set('tipo', tipo);
     if (desde) params.set('desde', desde);
     if (hasta) params.set('hasta', hasta);
-    params.set('token', getToken() || '');
-    window.open(`${API_BASE}/reportes/exportar-excel?${params.toString()}`, '_blank');
+
+    try {
+      const res = await fetch(`${API_BASE}/reportes/exportar-excel?${params.toString()}`, {
+        headers: { ...authHeaders() }
+      });
+      await handleAuth(res);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(err.error || 'Error al exportar reporte');
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      const contentDisposition = res.headers.get('Content-Disposition');
+      let filename = `reporte_${tipo}_${new Date().toISOString().slice(0, 10)}.csv`;
+      if (contentDisposition) {
+        const m = contentDisposition.match(/filename="?([^";]+)"?/);
+        if (m && m[1]) filename = m[1];
+      }
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (err) {
+      this.showMessage('reportesMsg', err.message || 'Error al exportar', 'error');
+    }
   }
 });

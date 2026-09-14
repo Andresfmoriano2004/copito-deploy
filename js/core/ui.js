@@ -261,13 +261,25 @@ Object.assign(App, {
   showMessage(id, text, type) {
     const el = typeof id === 'string' ? document.getElementById(id) : id;
     if (!el) { console.warn('showMessage: element not found', id); return; }
-    el.innerHTML = `<div class="message ${type}">${text}</div>`;
+    const safeText = this.escapeHtml ? this.escapeHtml(text) : String(text).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m]);
+    const safeType = this.escapeHtml ? this.escapeHtml(type) : type;
+    el.innerHTML = `<div class="message ${safeType}">${safeText}</div>`;
     if (type !== 'error') setTimeout(() => { el.innerHTML = ''; }, 5000);
   },
 
 
   cerrarModal() {
     document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+  },
+
+  mostrarModal(html) {
+    this.cerrarModal();
+    const modal = document.createElement('div');
+    modal.className = 'modal-backdrop';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:2000;font-family:var(--font);';
+    modal.innerHTML = `<div style="background:#FFFFFF;color:#1E293B;border-radius:12px;padding:24px;max-width:500px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.3);">${html}<div id="modalMsg" aria-live="polite"></div></div>`;
+    modal.addEventListener('click', e => { if (e.target === modal) this.cerrarModal(); });
+    document.body.appendChild(modal);
   },
 
 

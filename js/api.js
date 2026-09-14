@@ -206,6 +206,26 @@ async function abonarCuenta(pedidoId, cuenta, pagos) { return apiPost(`/pedidos/
 async function cerrarItemPedido(pedidoId, detalleId, pagos, cambio) { return apiPost(`/pedidos/${pedidoId}/pagar-item`, { detalleId, pagos, cambio }); }
 async function cerrarItemsPedido(pedidoId, detalleIds, pagos, cambio, cuenta) { return apiPost(`/pedidos/${pedidoId}/pagar-items`, { detalleIds, pagos, cambio, cuenta }); }
 
+// ─── Materia Prima ────────────────────────────────
+async function obtenerMateriaPrima(q) { return apiGet('/materia-prima' + (q ? `?q=${encodeURIComponent(q)}` : '')); }
+async function crearMateriaPrima(data) { return apiPost('/materia-prima', data); }
+async function actualizarMateriaPrima(codigo, data) { return apiPut(`/materia-prima/${encodeURIComponent(codigo)}`, data); }
+async function eliminarMateriaPrima(codigo) { return apiDelete(`/materia-prima/${encodeURIComponent(codigo)}`); }
+async function registrarMovimientoMateriaPrima(data) { return apiPost('/materia-prima/movimiento', data); }
+async function historialMateriaPrima(codigo) { return apiGet(`/materia-prima/historial/${encodeURIComponent(codigo)}`); }
+
+// ─── Recetas ─────────────────────────────────────
+async function obtenerRecetas(producto) { return apiGet('/recetas' + (producto ? `?producto=${encodeURIComponent(producto)}` : '')); }
+async function crearReceta(data) { return apiPost('/recetas', data); }
+async function actualizarReceta(id, data) { return apiPut(`/recetas/${id}`, data); }
+async function eliminarReceta(id) { return apiDelete(`/recetas/${id}`); }
+
+// ─── Consumos Internos (Angie) ──────────────────
+async function obtenerConsumosInternos(persona) { return apiGet('/consumos-internos' + (persona ? `?persona=${encodeURIComponent(persona)}` : '')); }
+async function obtenerResumenConsumos(desde, hasta) { return apiGet(`/consumos-internos/resumen?desde=${desde}&hasta=${hasta}`); }
+async function registrarConsumoInterno(data) { return apiPost('/consumos-internos', data); }
+async function eliminarConsumoInterno(id) { return apiDelete(`/consumos-internos/${id}`); }
+
 // ─── Reportes ──────────────────────────────────────
 async function obtenerReporteVentas(desde, hasta) {
   const params = new URLSearchParams();
@@ -229,6 +249,23 @@ async function registrarMovimientoCaja(data) { return apiPost('/caja/movimiento'
 async function obtenerResumenCaja() { return apiGet('/caja/resumen'); }
 async function cerrarCaja(montoFisico, notas) { return apiPost('/caja/cerrar', { montoFisico, notas }); }
 async function obtenerHistorialCaja() { return apiGet('/caja/historial'); }
+// Propinas de caja: lista movimientos tipo PROPINA de la sesión activa
+async function obtenerPropinasCaja() { return apiGet('/caja/propinas'); }
+
+// ─── Propinas ──────────────────────────────────────────
+// Registra una propina independiente. pedidoId=null → propina general.
+async function registrarPropina(data) { return apiPost('/propinas', data); }
+async function obtenerPropinas(filtros) {
+  const params = new URLSearchParams();
+  if (filtros) {
+    if (filtros.fecha_desde) params.set('fecha_desde', filtros.fecha_desde);
+    if (filtros.fecha_hasta) params.set('fecha_hasta', filtros.fecha_hasta);
+    if (filtros.lugar)       params.set('lugar', filtros.lugar);
+    if (filtros.usuario_id)  params.set('usuario_id', filtros.usuario_id);
+  }
+  const qs = params.toString();
+  return apiGet(`/propinas${qs ? '?' + qs : ''}`);
+}
 
 // ─── Usuarios ──────────────────────────────────────
 async function obtenerUsuarios() { return apiGet('/usuarios'); }

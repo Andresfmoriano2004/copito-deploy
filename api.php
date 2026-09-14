@@ -64,6 +64,10 @@ $modules = [
     'auditoria'   => __DIR__ . '/api/auditoria.php',
     'mantenimiento' => __DIR__ . '/api/mantenimiento.php',
     'reportes'    => __DIR__ . '/api/reportes.php',
+    'materia-prima' => __DIR__ . '/api/materia_prima.php',
+    'recetas'     => __DIR__ . '/api/recetas.php',
+    'consumos-internos' => __DIR__ . '/api/consumos_internos.php',
+    'propinas'          => __DIR__ . '/api/propinas.php',
 ];
 
 // ─── Health check ───────────────────────────────────────────────────────────

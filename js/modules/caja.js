@@ -33,10 +33,12 @@ Object.assign(App, {
       }
 
       // Caja activa - show resumen with FISICO/BANCARIO separation
-      obtenerResumenCaja().then(r => {
+      Promise.all([obtenerResumenCaja(), obtenerPropinasCaja()]).then(([r, rProp]) => {
         if (!r) { container.innerHTML = '<div class="message info">Error al cargar resumen</div>'; return; }
         const totalPagos = r.totalVentas + r.totalIngresos;
         const nMovs = (r.movimientos || []).length;
+        const totalPropinas = rProp ? rProp.totalPropinas : 0;
+        const propinas = rProp ? (rProp.propinas || []) : [];
         container.innerHTML = `
           <div class="card caja-estado-card caja-abierta"><div class="card-body">
             <div class="caja-estado-row">
@@ -53,6 +55,7 @@ Object.assign(App, {
             <div class="stat-card kpi-pagos"><div class="stat-value">${this.fmt(totalPagos)}</div><div class="stat-label">💰 Pagos recibidos (ventas + ingresos)</div></div>
             <div class="stat-card kpi-movs"><div class="stat-value">${nMovs}</div><div class="stat-label">📜 Movimientos del día</div></div>
             <div class="stat-card kpi-saldo"><div class="stat-value">${this.fmt(r.totalEsperado)}</div><div class="stat-label">✅ Saldo disponible (esperado)</div></div>
+            <div class="stat-card" style="background:linear-gradient(135deg,#fce4ec,#f8bbd0);border-left:4px solid #e91e8c;"><div class="stat-value" style="color:#c2185b;">${this.fmt(totalPropinas)}</div><div class="stat-label" style="color:#880e4f;">💝 Propinas del día</div></div>
           </div>
           <div class="caja-split">
             <div class="card"><div class="card-header">💵 FÍSICO (Efectivo)</div><div class="card-body">
@@ -69,6 +72,31 @@ Object.assign(App, {
               <hr class="caja-hr">
               <div class="caja-total caja-total-bancario"><span>Total bancario</span><span>${this.fmt(r.totalBancario)}</span></div>
             </div></div>
+          </div>
+          <div class="card" style="border-top:3px solid #e91e8c;">
+            <div class="card-header" style="color:#c2185b;">💝 Propinas del Día <span style="font-size:0.8rem;font-weight:400;margin-left:8px;color:var(--text-muted);">(Independiente de ventas)</span></div>
+            <div class="card-body">
+              <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px;padding:10px;background:#fce4ec;border-radius:8px;">
+                <span style="color:#880e4f;">💵 Efectivo: <strong>${this.fmt(rProp?.efectivoPropinas || 0)}</strong></span>
+                <span style="color:#880e4f;">🏦 Transferencia: <strong>${this.fmt(rProp?.bancarioPropinas || 0)}</strong></span>
+                <span style="color:#c2185b;font-weight:700;">Total propinas: <strong>${this.fmt(totalPropinas)}</strong></span>
+              </div>
+              <div class="actions" style="margin-bottom:12px;">
+                <button class="btn" data-action="propina-general" type="button" style="background:#e91e8c;color:white;border:none;font-weight:600;">💝 Registrar Propina General</button>
+              </div>
+              ${propinas.length ? `
+              <div class="table-container"><table class="tabla-responsive">
+                <thead><tr><th>Fecha</th><th>Hora</th><th>Mesa/Pedido</th><th>Usuario</th><th>Método</th><th style="text-align:right;">Propina</th></tr></thead>
+                <tbody>${propinas.map(p => `<tr>
+                  <td data-label="Fecha">${p.fechaCorta || this.fmtFecha(p.fecha)}</td>
+                  <td data-label="Hora">${p.hora || this.fmtHora(p.fecha)}</td>
+                  <td data-label="Mesa/Pedido">${p.pedidoId ? `<strong>${this.escapeHtml(p.pedidoId)}</strong>${p.lugar ? ' · ' + this.escapeHtml(p.lugar) : ''}` : '<em style="color:var(--text-muted);">Propina general</em>'}</td>
+                  <td data-label="Usuario">${this.escapeHtml(p.usuario || '—')}</td>
+                  <td data-label="Método"><span class="badge ${p.metodoPago === 'Efectivo' ? 'badge-cerrado' : 'badge-info'}">${this.escapeHtml(p.metodoPago || '')}</span></td>
+                  <td data-label="Propina" style="font-weight:700;text-align:right;color:#c2185b;">${this.fmt(p.monto)}</td>
+                </tr>`).join('')}</tbody>
+              </table></div>` : '<div class="message info">No hay propinas registradas en esta sesión</div>'}
+            </div>
           </div>
           <div class="card"><div class="card-header">📋 Ingreso / Egreso Manual</div><div class="card-body">
             <div class="form-grid caja-form-grid">

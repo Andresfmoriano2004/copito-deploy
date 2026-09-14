@@ -85,6 +85,27 @@
           </button>
         </li>
         <li class="nav-item" role="none">
+          <button class="nav-link" role="tab" aria-selected="false" data-tab="materia-prima" type="button">
+            <img width="25" height="25" src="https://img.icons8.com/fluency/48/beans.png" alt="materia-prima"/>
+            <span class="nav-icon" aria-hidden="true"></span>
+            Materia Prima
+          </button>
+        </li>
+        <li class="nav-item" role="none">
+          <button class="nav-link" role="tab" aria-selected="false" data-tab="recetas" type="button">
+            <img width="25" height="25" src="https://img.icons8.com/fluency/48/recipe-book.png" alt="recetas"/>
+            <span class="nav-icon" aria-hidden="true"></span>
+            Recetas
+          </button>
+        </li>
+        <li class="nav-item" role="none">
+          <button class="nav-link" role="tab" aria-selected="false" data-tab="angie" type="button">
+            <img width="25" height="25" src="https://img.icons8.com/fluency/48/money.png" alt="gasto"/>
+            <span class="nav-icon" aria-hidden="true"></span>
+            Gasto Personal
+          </button>
+        </li>
+        <li class="nav-item" role="none">
           <button class="nav-link" role="tab" aria-selected="false" data-tab="buscar" type="button">
             <img width="25" height="25" src="https://img.icons8.com/color/48/search-more.png" alt="search-more"/>
             <span class="nav-icon" aria-hidden="true"></span>
@@ -359,6 +380,36 @@
         <div class="content-body"></div>
       </div>
 
+      <div id="materia-prima" class="tab-content" role="tabpanel">
+        <div class="content-header">
+          <h2>Materia Prima</h2>
+        </div>
+        <div class="content-body">
+          <div id="materiaPrimaContent">Cargando...</div>
+          <div id="materiaPrimaMsg" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <div id="recetas" class="tab-content" role="tabpanel">
+        <div class="content-header">
+          <h2>Recetas</h2>
+        </div>
+        <div class="content-body">
+          <div id="recetasContent">Cargando...</div>
+          <div id="recetasMsg" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <div id="angie" class="tab-content" role="tabpanel">
+        <div class="content-header">
+          <h2>Gasto Personal — Consumo Interno</h2>
+        </div>
+        <div class="content-body">
+          <div id="angieContent">Cargando...</div>
+          <div id="angieMsg" aria-live="polite"></div>
+        </div>
+      </div>
+
       <div id="buscar" class="tab-content" role="tabpanel">
         <div class="content-header">
           <h2>Búsqueda de Productos</h2>
@@ -497,6 +548,10 @@
   <script src="js/modules/mesas.js"></script>
   <script src="js/modules/caja.js"></script>
   <script src="js/modules/config.js"></script>
+  <script src="js/modules/materia_prima.js"></script>
+  <script src="js/modules/recetas.js"></script>
+  <script src="js/modules/angie.js"></script>
+  <script src="js/modules/pos_order.js"></script>
   <script>
     // Registro de Service Worker para capacidades PWA y offline
     if ('serviceWorker' in navigator) {

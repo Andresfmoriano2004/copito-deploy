@@ -1,7 +1,34 @@
+# Desactivar listado de directorio
+Options -Indexes
+
+# Denegar acceso por defecto a cualquier archivo que no sea PHP
 <IfModule mod_authz_core.c>
-  Require all granted
+  Require all denied
 </IfModule>
 <IfModule !mod_authz_core.c>
-  Order allow,deny
-  Allow from all
+  Order deny,allow
+  Deny from all
 </IfModule>
+
+# Permitir ejecución de scripts PHP
+<FilesMatch "\.php$">
+  <IfModule mod_authz_core.c>
+    Require all granted
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Allow from all
+  </IfModule>
+</FilesMatch>
+
+# Bloquear archivos de configuración y helpers de inclusión directa
+<FilesMatch "^(config|pedidos_helpers)\.php$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order deny,allow
+    Deny from all
+  </IfModule>
+</FilesMatch>
+

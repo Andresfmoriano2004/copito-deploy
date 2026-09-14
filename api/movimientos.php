@@ -77,19 +77,34 @@ if ($method === 'POST' && $path === 'movimientos') {
   // Fase 3: endurece tipos/formatos con los mismos mensajes de error base
   validate($body, ['codigo' => 'string|max:20', 'tipo' => 'in:INGRESO,SALIDA', 'cantidad' => 'numeric|min:0.01']);
 
-  $producto = db()->prepare('SELECT codigo FROM productos WHERE codigo=?');
-  $producto->execute([$codigo]);
-  if (!$producto->fetch()) jsonError('Producto no encontrado', 404);
-  if ($tipo === 'SALIDA') {
-    $stock = db()->prepare("SELECT COALESCE(SUM(CASE WHEN tipo='INGRESO' THEN cantidad ELSE -cantidad END),0) FROM movimientos WHERE codigo_producto=?");
-    $stock->execute([$codigo]);
-    if ((float)$stock->fetchColumn() < $cantidad) jsonError('Stock insuficiente');
-  }
+  $pdo = db();
+  $pdo->beginTransaction();
+  try {
+    $producto = $pdo->prepare('SELECT codigo FROM productos WHERE codigo=? FOR UPDATE');
+    $producto->execute([$codigo]);
+    if (!$producto->fetch()) {
+      $pdo->rollBack();
+      jsonError('Producto no encontrado', 404);
+    }
+    if ($tipo === 'SALIDA') {
+      $stock = $pdo->prepare("SELECT COALESCE(SUM(CASE WHEN tipo='INGRESO' THEN cantidad ELSE -cantidad END),0) FROM movimientos WHERE codigo_producto=?");
+      $stock->execute([$codigo]);
+      if ((float)$stock->fetchColumn() < $cantidad) {
+        $pdo->rollBack();
+        jsonError('Stock insuficiente');
+      }
+    }
 
-  $stmt = db()->prepare('INSERT INTO movimientos (codigo_producto, tipo, cantidad, notas, usuario_id) VALUES (?,?,?,?,?)');
-  $stmt->execute([$codigo, $tipo, $cantidad, $nota, $authUser['id']]);
-  auditLog($authUser, 'REGISTRAR_MOVIMIENTO', null, null, ['codigo' => $codigo, 'tipo' => $tipo, 'cantidad' => $cantidad]);
-  jsonResponse(['success' => true, 'mensaje' => 'Movimiento registrado']);
+    $stmt = $pdo->prepare('INSERT INTO movimientos (codigo_producto, tipo, cantidad, notas, usuario_id) VALUES (?,?,?,?,?)');
+    $stmt->execute([$codigo, $tipo, $cantidad, $nota, $authUser['id']]);
+    $pdo->commit();
+    auditLog($authUser, 'REGISTRAR_MOVIMIENTO', null, null, ['codigo' => $codigo, 'tipo' => $tipo, 'cantidad' => $cantidad]);
+    jsonResponse(['success' => true, 'mensaje' => 'Movimiento registrado']);
+  } catch (Exception $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    error_log('Error en registro de movimiento: ' . $e->getMessage());
+    jsonError('Error interno del servidor', 500);
+  }
 }
 
 jsonError('Ruta no encontrada', 404);

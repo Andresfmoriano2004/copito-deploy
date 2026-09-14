@@ -1,11 +1,6 @@
 <?php
 require_once __DIR__ . '/config.php';
 
-// window.open() no envía headers: se acepta ?token= como alternativa al Bearer.
-// Se valida igual (firma + expiración + usuario activo) vía requireAuth().
-if (empty($_SERVER['HTTP_AUTHORIZATION']) && !empty($_GET['token'])) {
-  $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $_GET['token'];
-}
 $authUser = requireAuth();
 
 $method = $_SERVER['REQUEST_METHOD'];

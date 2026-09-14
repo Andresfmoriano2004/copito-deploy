@@ -173,7 +173,7 @@ if ($method === 'POST' && preg_match('#^pedidos/(.+)/items$#', $path, $m)) {
     ]);
 
     $pdo->commit();
-    jsonResponse(['success' => true, 'mensaje' => 'Item agregado al pedido']);
+    jsonResponse(['success' => true, 'mensaje' => 'Item agregado al pedido', 'detalleId' => (int)$pdo->lastInsertId()]);
   } catch (Exception $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
     jsonError('No se pudo agregar el item', 500);

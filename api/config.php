@@ -43,20 +43,22 @@ if (file_exists($envFile)) {
   }
 }
 
-// ─── Configuración ──────────────────────────────────
+$dbPassEnv = getenv('DB_PASSWORD') !== false ? getenv('DB_PASSWORD') : getenv('DB_PASS');
+$jwtSecretEnv = getenv('JWT_SECRET');
+
 defined('DB_HOST')    || define('DB_HOST',    getenv('DB_HOST') ?: 'localhost');
 defined('DB_PORT')    || define('DB_PORT',    getenv('DB_PORT') ?: '3306');
 defined('DB_USER')    || define('DB_USER',    getenv('DB_USER') ?: '');
-defined('DB_PASS')    || define('DB_PASS',    getenv('DB_PASSWORD') ?: (getenv('DB_PASS') ?: ''));
+defined('DB_PASS')    || define('DB_PASS',    $dbPassEnv !== false ? $dbPassEnv : null);
 defined('DB_NAME')    || define('DB_NAME',    getenv('DB_NAME') ?: '');
-defined('JWT_SECRET') || define('JWT_SECRET', getenv('JWT_SECRET') ?: '');
+defined('JWT_SECRET') || define('JWT_SECRET', $jwtSecretEnv ?: '');
 
 // ─── Conexión MySQL (PDO) ──────────────────────────
 function db() {
   static $pdo = null;
   if ($pdo === null) {
     try {
-      if (!DB_USER || !DB_NAME || !JWT_SECRET) {
+      if (!DB_USER || !DB_NAME || DB_PASS === null || !JWT_SECRET) {
         jsonError('Configuración del servidor incompleta', 500);
       }
       $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4";
@@ -98,6 +100,14 @@ function jsonResponse($data, $code = 200) {
 
 function jsonError($msg, $code = 400) {
   jsonResponse(['error' => $msg], $code);
+}
+
+// Verificación obligatoria de credenciales seguras
+if (DB_PASS === null) {
+  jsonError('Configuración del servidor incompleta: DB_PASS no está definido', 500);
+}
+if (!JWT_SECRET) {
+  jsonError('Configuración del servidor incompleta: JWT_SECRET no está definido', 500);
 }
 
 // ─── JWT (HMAC-SHA256, sin dependencias) ────────────
@@ -220,6 +230,11 @@ function normalizarMetodoPago($metodo) {
   $aliasBancario = ['QR', 'QR / Transferencia', 'Llave Bancaria', 'Transferencia bancaria', 'Transferencia Bancaria'];
   if (in_array($m, $aliasBancario, true)) return 'Transferencia';
   return $m;
+}
+
+function tipoPago($metodo) {
+  $m = normalizarMetodoPago($metodo);
+  return $m === 'Efectivo' ? 'FISICO' : 'BANCARIO';
 }
 
 // ─── Paginación (Fase 2: compatible hacia atrás) ─────────────────────────

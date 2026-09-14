@@ -9,8 +9,15 @@ if ($method === 'POST' && preg_match('#^pedidos/(.+)/cerrar$#', $path, $m)) {
   $total = round((float)$pedRow['total'], 2);
   $pagos = parsePagos($body, $total);
   if (!$pagos) jsonError('Método(s) de pago requerido(s)');
-  $totalPagado = round(array_sum(array_column($pagos, 'monto')), 2);
-  if ($totalPagado < $total) jsonError("El total pagado ($" . number_format($totalPagado, 0, ',', '.') . ") es menor que el total ($" . number_format($total, 0, ',', '.') . ")");
+  $nuevoPago = round(array_sum(array_column($pagos, 'monto')), 2);
+
+  // Calcular lo ya pagado previamente (abonos anteriores)
+  $prevStmt = $pdo->prepare('SELECT COALESCE(ROUND(SUM(monto),2),0) AS t FROM pagos WHERE id_pedido=?');
+  $prevStmt->execute([$id]);
+  $previo = round((float)$prevStmt->fetch()['t'], 2);
+  $totalConPago = round($previo + $nuevoPago, 2);
+
+  if ($totalConPago < $total - 0.01) jsonError("El total pagado ($" . number_format($totalConPago, 0, ',', '.') . ") es menor que el total ($" . number_format($total, 0, ',', '.') . ")");
 
   $pdo->beginTransaction();
   try {
@@ -18,12 +25,28 @@ if ($method === 'POST' && preg_match('#^pedidos/(.+)/cerrar$#', $path, $m)) {
     $lockStmt->execute([$id]);
     $lockStmt->fetchAll();
 
-    registrarPagos($pdo, $id, null, $pagos);
+    // Crear registros de pago por ítem para trazabilidad
+    $itemsAll = $pdo->prepare('SELECT * FROM detalle_pedido WHERE id_pedido=?');
+    $itemsAll->execute([$id]);
+    $todosItems = $itemsAll->fetchAll();
+    $soloPend = array_values(array_filter($todosItems, fn($i) => !$i['pagado']));
+    $metodoNotas = $pagos[0]['metodoPago'] ?? 'Efectivo';
+    $restante = $nuevoPago;
+    $insPago = $pdo->prepare('INSERT INTO pagos (id_pedido, cuenta, detalle_id, metodo_pago, monto, notas, usuario_id, mesa) VALUES (?,?,?,?,?,?,?,?)');
+    foreach ($soloPend as $item) {
+      if ($restante <= 0) break;
+      $montoItem = round((float)$item['subtotal'], 2);
+      $aPagar = round(min($restante, $montoItem), 2);
+      $insPago->execute([$id, null, (int)$item['id'], $metodoNotas, $aPagar, $item['nombre_producto'], $authUser['id'], $pedRow['lugar']]);
+      $restante = round($restante - $aPagar, 2);
+    }
+    if (round($restante, 2) > 0) {
+      $insPago->execute([$id, null, null, $metodoNotas, $restante, 'Pago pedido', $authUser['id'], $pedRow['lugar']]);
+    }
     registrarVentaEnCaja($pdo, $id, $pagos, "Pedido $id", $authUser['id']);
 
-    $items = $pdo->prepare('SELECT * FROM detalle_pedido WHERE id_pedido=?');
-    $items->execute([$id]);
-    registrarMovimientosStock($pdo, $items->fetchAll(), "Pedido $id");
+    // Solo descontar stock de ítems NO pagados aún
+    if ($soloPend) registrarMovimientosStock($pdo, $soloPend, "Pedido $id");
 
     $metodos = implode(', ', array_map(fn($p) => $p['metodoPago'], $pagos));
     $pdo->prepare("UPDATE pedidos SET estado='Cerrado', fecha_cierre=NOW(), metodo_pago=? WHERE id_pedido=?")->execute([$metodos, $id]);
@@ -65,9 +88,31 @@ if ($method === 'POST' && preg_match('#^pedidos/(.+)/cerrar-cuenta$#', $path, $m
     $sumStmt->execute([$id, $cuenta, $cuenta]);
     $totalCuenta = round((float)$sumStmt->fetch()['total'], 2);
 
-    if ($nuevo < $totalCuenta) { $pdo->rollBack(); jsonError("Total pagado ($" . number_format($nuevo, 0, ',', '.') . ") menor que total de cuenta ($" . number_format($totalCuenta, 0, ',', '.') . ")"); }
+    // Acumulado previo de esta cuenta
+    $prevStmt = $pdo->prepare('SELECT COALESCE(ROUND(SUM(monto),2),0) AS t FROM pagos WHERE id_pedido=? AND (cuenta=? OR (cuenta IS NULL AND ? IS NULL))');
+    $prevStmt->execute([$id, $cuenta, $cuenta]);
+    $acumuladoPrevio = round((float)$prevStmt->fetch()['t'], 2);
+    $totalConAbono = round($acumuladoPrevio + $nuevo, 2);
 
-    registrarPagos($pdo, $id, $cuenta, $pagos);
+    if ($totalConAbono < $totalCuenta - 0.01) { $pdo->rollBack(); jsonError("Total pagado ($" . number_format($totalConAbono, 0, ',', '.') . ") menor que total de cuenta ($" . number_format($totalCuenta, 0, ',', '.') . ")"); }
+
+    // Crear registros de pago por ítem para trazabilidad
+    $itemsCta = $pdo->prepare('SELECT * FROM detalle_pedido WHERE id_pedido=? AND (cuenta=? OR (cuenta IS NULL AND ? IS NULL)) AND pagado=FALSE');
+    $itemsCta->execute([$id, $cuenta, $cuenta]);
+    $pendientes = $itemsCta->fetchAll();
+    $metodoNotas = $pagos[0]['metodoPago'] ?? 'Efectivo';
+    $restante = $nuevo;
+    $insPago = $pdo->prepare('INSERT INTO pagos (id_pedido, cuenta, detalle_id, metodo_pago, monto, notas, usuario_id, mesa) VALUES (?,?,?,?,?,?,?,?)');
+    foreach ($pendientes as $item) {
+      if ($restante <= 0) break;
+      $montoItem = round((float)$item['subtotal'], 2);
+      $aPagar = round(min($restante, $montoItem), 2);
+      $insPago->execute([$id, $cuenta, (int)$item['id'], $metodoNotas, $aPagar, $item['nombre_producto'], $authUser['id'], $pedRow['lugar']]);
+      $restante = round($restante - $aPagar, 2);
+    }
+    if (round($restante, 2) > 0) {
+      $insPago->execute([$id, $cuenta, null, $metodoNotas, $restante, 'Pago cuenta', $authUser['id'], $pedRow['lugar']]);
+    }
     $descCuenta = $cuenta ?: 'General';
     registrarVentaEnCaja($pdo, $id, $pagos, "Cuenta $descCuenta de $id", $authUser['id']);
 
@@ -151,15 +196,29 @@ if ($method === 'POST' && preg_match('#^pedidos/(.+)/cerrar-cuenta$#', $path, $m
       $acumulado = round($previo + $nuevo, 2);
       $pendiente = round(max(0, $scopeTotal - $acumulado), 2);
       $cuentaCerrada = $pendiente <= 0.01;
+      $soloPendientes = array_values(array_filter($scopeItems, fn($i) => !$i['pagado']));
 
-      $ins = $pdo->prepare('INSERT INTO pagos (id_pedido, cuenta, metodo_pago, monto, usuario_id, mesa) VALUES (?,?,?,?,?,?)');
-      foreach ($pagos as $p) $ins->execute([$id, $cuenta, $p['metodoPago'], $p['monto'], $authUser['id'], $pedRow['lugar']]);
+      $ins = $pdo->prepare('INSERT INTO pagos (id_pedido, cuenta, detalle_id, metodo_pago, monto, notas, usuario_id, mesa) VALUES (?,?,?,?,?,?,?,?)');
+      $metodoNotas = $pagos[0]['metodoPago'] ?? 'Efectivo';
+      $totalAbono = $nuevo;
+      $restante = $nuevo;
+      foreach ($soloPendientes as $item) {
+        if ($restante <= 0) break;
+        $montoItem = round((float)$item['subtotal'], 2);
+        $aPagar = min($restante, $montoItem);
+        $aPagar = round($aPagar, 2);
+        $productoNombre = $item['nombre_producto'];
+        $ins->execute([$id, $cuenta, (int)$item['id'], $metodoNotas, $aPagar, "Abono: $productoNombre", $authUser['id'], $pedRow['lugar']]);
+        $restante = round($restante - $aPagar, 2);
+      }
+      if (round($restante, 2) > 0) {
+        $ins->execute([$id, $cuenta, null, $metodoNotas, $restante, 'Abono general', $authUser['id'], $pedRow['lugar']]);
+      }
       registrarVentaEnCaja($pdo, $id, $pagos, $cuenta ? "Abono Cuenta $cuenta de $id" : "Abono de $id", $authUser['id']);
 
       // Al completar la cuenta: items→pagados + salida de stock
       if ($cuentaCerrada) {
-        $soloPend = array_values(array_filter($scopeItems, fn($i) => !$i['pagado']));
-        if ($soloPend) registrarMovimientosStock($pdo, $soloPend, $cuenta ? "Pedido $id (Cuenta $cuenta)" : "Pedido $id");
+        if ($soloPendientes) registrarMovimientosStock($pdo, $soloPendientes, $cuenta ? "Pedido $id (Cuenta $cuenta)" : "Pedido $id");
       }
       // Cierre automático del pedido cuando todo queda en $0
       $allPagos = $pdo->prepare('SELECT COALESCE(ROUND(SUM(monto),2),0) AS t FROM pagos WHERE id_pedido=?');
