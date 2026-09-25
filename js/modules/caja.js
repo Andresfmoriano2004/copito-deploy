@@ -4,6 +4,15 @@
 Object.assign(App, {
 
   // ================== CAJA ==================
+  mostrarCajaMsg(text, type = 'success', target = 'cajaMsg') {
+    const fallback = document.getElementById(target) || document.querySelector('#caja .content-body #' + target) || document.querySelector('#caja .content-body [id$="Msg"]');
+    if (!fallback) {
+      console.warn('Caja message target not found:', target, text);
+      return;
+    }
+    this.showMessage(fallback, text, type);
+  },
+
   cargarCaja() {
     const container = document.querySelector('#caja .content-body');
     if (!container) return;
@@ -20,14 +29,14 @@ Object.assign(App, {
               ${this.badgeEstado('Disponible')}
             </div>
           </div></div>
-          <div class="card"><div class="card-header">💰 Apertura de Caja</div><div class="card-body">
+          <div class="card caja-apertura-card"><div class="card-header">💰 Apertura de Caja</div><div class="card-body">
             <div class="form-grid" style="max-width:400px;">
               <div class="form-group"><label for="cajaMontoInicial">Monto Inicial (efectivo en caja)</label><input id="cajaMontoInicial" type="number" min="0" step="100" value="0"></div>
             </div>
             <div class="actions"><button class="btn btn-success" data-action="abrir-caja" type="button">🟢 Abrir Caja</button></div>
             <div id="cajaMsg" aria-live="polite"></div>
           </div></div>
-          <div class="card"><div class="card-header">📜 Historial de Cierres</div><div class="card-body"><div id="cajaHistorial"></div></div></div>`;
+          <div class="card caja-historial-card"><div class="card-header">📜 Historial de Cierres</div><div class="card-body"><div id="cajaHistorial"></div></div></div>`;
         this.cargarHistorialCaja();
         return;
       }
@@ -50,6 +59,7 @@ Object.assign(App, {
               ${this.badgeEstado('Abierto')}
             </div>
           </div></div>
+          <div id="cajaMsg" aria-live="polite"></div>
           <div class="kpi-grid">
             <div class="stat-card kpi-ventas"><div class="stat-value">${this.fmt(r.totalVentas)}</div><div class="stat-label">🛒 Total de ventas</div></div>
             <div class="stat-card kpi-pagos"><div class="stat-value">${this.fmt(totalPagos)}</div><div class="stat-label">💰 Pagos recibidos (ventas + ingresos)</div></div>
@@ -73,7 +83,7 @@ Object.assign(App, {
               <div class="caja-total caja-total-bancario"><span>Total bancario</span><span>${this.fmt(r.totalBancario)}</span></div>
             </div></div>
           </div>
-          <div class="card" style="border-top:3px solid #e91e8c;">
+          <div class="card caja-propinas-card" style="border-top:3px solid #e91e8c;">
             <div class="card-header" style="color:#c2185b;">💝 Propinas del Día <span style="font-size:0.8rem;font-weight:400;margin-left:8px;color:var(--text-muted);">(Independiente de ventas)</span></div>
             <div class="card-body">
               <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px;padding:10px;background:#fce4ec;border-radius:8px;">
@@ -98,7 +108,7 @@ Object.assign(App, {
               </table></div>` : '<div class="message info">No hay propinas registradas en esta sesión</div>'}
             </div>
           </div>
-          <div class="card"><div class="card-header">📋 Ingreso / Egreso Manual</div><div class="card-body">
+          <div class="card caja-mov-card"><div class="card-header">📋 Ingreso / Egreso Manual</div><div class="card-body">
             <div class="form-grid caja-form-grid">
               <div class="form-group"><label>Tipo</label><select id="cajaMovTipo"><option value="INGRESO">INGRESO</option><option value="EGRESO">EGRESO</option></select></div>
               <div class="form-group"><label>Método</label><select id="cajaMovMetodo"><option value="Efectivo">💵 Efectivo</option><option value="Transferencia">🏦 Transferencia bancaria</option></select></div>
@@ -108,7 +118,7 @@ Object.assign(App, {
             <div class="actions"><button class="btn btn-primary" data-action="registrar-mov-caja" type="button">Registrar</button></div>
             <div id="cajaMovMsg" aria-live="polite"></div>
           </div></div>
-          <div class="card"><div class="card-header">📜 Movimientos del Día</div><div class="card-body">
+          <div class="card caja-table-card"><div class="card-header">📜 Movimientos del Día</div><div class="card-body">
             <div class="table-container"><table class="tabla-responsive"><thead><tr><th>Fecha</th><th>Hora</th><th>Tipo</th><th>Pago</th><th>Medio</th><th>Descripción</th><th style="text-align:right;">Monto</th></tr></thead>
               <tbody>${(r.movimientos || []).map(m => `<tr>
                 <td data-label="Fecha">${m.fechaCorta || this.fmtFecha(m.fecha)}</td>
@@ -121,7 +131,7 @@ Object.assign(App, {
               </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);">Sin movimientos registrados</td></tr>'}</tbody></table>
             </div>
           </div></div>
-          <div class="actions" style="margin-top:10px;">
+          <div class="actions caja-close-actions" style="margin-top:10px;">
             <button class="btn btn-danger" data-action="cerrar-caja-modal" type="button">🔴 Cerrar Caja</button>
           </div>`;
       });
@@ -131,9 +141,10 @@ Object.assign(App, {
 
   abrirCajaHandler() {
     const monto = Math.round(parseFloat(document.getElementById('cajaMontoInicial')?.value) || 0);
+    if (monto < 0) return this.mostrarCajaMsg('El monto inicial no puede ser negativo', 'error');
     abrirCaja(monto)
-      .then(res => { this.showMessage('cajaMsg', res.mensaje, 'success'); this.cargarCaja(); })
-      .catch(err => { this.showMessage('cajaMsg', 'Error: ' + err.message, 'error'); });
+      .then(res => { this.mostrarCajaMsg(res.mensaje || 'Caja abierta', 'success'); this.cargarCaja(); })
+      .catch(err => { this.mostrarCajaMsg('Error: ' + err.message, 'error'); });
   },
 
 
@@ -142,7 +153,7 @@ Object.assign(App, {
     const metodoPago = document.getElementById('cajaMovMetodo')?.value || 'Efectivo';
     const monto = Math.round(parseFloat(document.getElementById('cajaMovMonto')?.value) || 0);
     const descripcion = document.getElementById('cajaMovDesc')?.value?.trim() || '';
-    if (!tipo || !monto) return this.showMessage('cajaMovMsg', 'Complete tipo y monto', 'error');
+    if (!tipo || !monto || monto <= 0) return this.showMessage('cajaMovMsg', 'Complete un tipo y un monto válido', 'error');
     registrarMovimientoCaja({ tipo, metodoPago, monto, descripcion })
       .then(res => { this.showMessage('cajaMovMsg', res.mensaje, 'success'); this.cargarCaja(); })
       .catch(err => { this.showMessage('cajaMovMsg', 'Error: ' + err.message, 'error'); });
@@ -199,20 +210,23 @@ Object.assign(App, {
   confirmarCierreCaja() {
     const montoFisico = Math.round(parseFloat(document.getElementById('cajaMontoFisico')?.value) || 0);
     const notas = document.getElementById('cajaNotas')?.value?.trim() || '';
+    if (montoFisico < 0) return this.mostrarCajaMsg('El valor físico no puede ser negativo', 'error');
     cerrarCaja(montoFisico, notas)
       .then(res => {
         this.cerrarModal();
         const r = res.resumen;
-        alert(`✅ Caja cerrada exitosamente\n\n` +
+        const resumenText = `✅ Caja cerrada exitosamente\n\n` +
           `💵 Efectivo Esperado: ${this.fmt(r.totalFisico)}\n` +
           `💰 Efectivo en Caja: ${this.fmt(r.montoFisico)}\n` +
           `📊 Diferencia Efectivo: ${this.fmt(r.diferencia)}\n` +
           `🏦 Total Bancario: ${this.fmt(r.totalBancario)}\n` +
           `─────────────────\n` +
-          `📋 Total General: ${this.fmt(r.montoEsperado)}`);
+          `📋 Total General: ${this.fmt(r.montoEsperado)}`;
+        this.mostrarCajaMsg('Caja cerrada correctamente. Revisa la diferencia del cierre.', 'success');
+        alert(resumenText);
         this.cargarCaja();
       })
-      .catch(err => { this.showMessage('cajaMsg', 'Error: ' + err.message, 'error'); });
+      .catch(err => { this.mostrarCajaMsg('Error: ' + err.message, 'error'); });
   },
 
 

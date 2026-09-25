@@ -50,7 +50,7 @@ Object.assign(App, {
             <div class="form-group"><label for="auditPedido">Pedido</label><input id="auditPedido" type="text" placeholder="PED-..."></div>
             <div class="form-group"><label for="auditOp">Operación</label><select id="auditOp"><option value="">Todas</option><option>CREAR_PEDIDO</option><option>AGREGAR_PRODUCTO_PEDIDO</option><option>MODIFICAR_PRODUCTO_PEDIDO</option><option>MODIFICAR_PEDIDO</option><option>ELIMINAR_PRODUCTO_PEDIDO</option><option>CANCELAR_PEDIDO</option><option>REGISTRAR_PAGO</option><option>ABONO_PEDIDO</option><option>REGISTRAR_PAGO_ITEM</option><option>REGISTRAR_PAGO_ITEMS</option><option>ABRIR_CAJA</option><option>CERRAR_CAJA</option><option>MOVIMIENTO_CAJA</option><option>CREAR_USUARIO</option><option>MODIFICAR_USUARIO</option><option>DESACTIVAR_USUARIO</option></select></div>
           </div>
-          <div class="actions"><button class="btn btn-primary" data-action="filtrar-auditoria" type="button">🔍 Consultar</button></div>
+          <div class="actions"><button class="btn btn-primary" data-action="filtrar-auditoria" type="button">🔍 Consultar</button><button class="btn btn-success" data-action="export-excel-auditoria" type="button">📥 Exportar Excel</button></div>
           <div class="table-container"><div id="auditoriaTable" aria-live="polite"><div style="color:var(--text-muted);">Pulse Consultar para ver quién hizo cada operación.</div></div></div>
         </div></div>
         ${esAdmin ? `
@@ -126,6 +126,41 @@ Object.assign(App, {
         <td data-label="Pedido/Mesa">${this.escapeHtml([r.pedidoId, r.mesa].filter(Boolean).join(' · ') || '—')}</td>
       </tr>`).join('')}</tbody></table>`;
     }).catch(err => this.showMessage('configMsg', 'Error: ' + err.message, 'error'));
+  },
+
+
+  exportarExcelAuditoria() {
+    const params = new URLSearchParams();
+    params.set('tipo', 'auditoria');
+    const ped = document.getElementById('auditPedido')?.value?.trim();
+    const op = document.getElementById('auditOp')?.value;
+    if (ped) params.set('pedido_id', ped);
+    if (op) params.set('operacion', op);
+    fetchRetry(`${API_BASE}/reportes/exportar-excel?${params.toString()}`, {
+      headers: { ...authHeaders() }
+    }).then(async res => {
+      await handleAuth(res);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(err.error || 'Error al exportar auditoría');
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      const contentDisposition = res.headers.get('Content-Disposition');
+      let filename = `auditoria_${new Date().toISOString().slice(0, 10)}.csv`;
+      if (contentDisposition) {
+        const m = contentDisposition.match(/filename="?([^";]+)"?/);
+        if (m && m[1]) filename = m[1];
+      }
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    }).catch(err => this.showMessage('configMsg', err.message || 'Error al exportar', 'error'));
   },
 
 

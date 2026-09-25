@@ -127,6 +127,10 @@ Object.assign(App, {
         estadoMsg.innerHTML = '<span style="color:var(--success);font-weight:600;">✔ Pago por transferencia</span>';
         btnConfirmar.disabled = false;
         btnConfirmar.textContent = `✅ Pagar ${this.fmt(total)}`;
+      } else if (asignado > total + 0.01) {
+        estadoMsg.innerHTML = `<span style="color:var(--danger);font-weight:600;">⚠️ El asignado (${this.fmt(asignado)}) excede el total (${this.fmt(total)})</span>`;
+        btnConfirmar.disabled = true;
+        btnConfirmar.textContent = `✅ Excede el total`;
       } else if (reciboInput && (parseFloat(reciboInput.value) || 0) < asignado) {
         estadoMsg.innerHTML = `<span style="color:var(--warning-text);font-weight:600;">El monto recibido debe cubrir el total asignado</span>`;
         btnConfirmar.disabled = true;

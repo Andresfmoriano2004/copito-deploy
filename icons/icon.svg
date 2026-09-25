@@ -1,48 +1,33 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="corpGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1E293B" />
-      <stop offset="50%" stop-color="#0F172A" />
-      <stop offset="100%" stop-color="#090D16" />
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1F2937"/>
+      <stop offset="50%" stop-color="#0F172A"/>
+      <stop offset="100%" stop-color="#111827"/>
     </linearGradient>
-    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#60A5FA" />
-      <stop offset="100%" stop-color="#2563EB" />
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#F97316"/>
     </linearGradient>
-    <filter id="dropShadow" x="-10%" y="-10%" width="130%" height="130%">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.45"/>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#020617" flood-opacity="0.35"/>
     </filter>
   </defs>
-  
-  <!-- Background Rounded Rect -->
-  <rect width="512" height="512" rx="110" fill="url(#corpGrad)"/>
-  
-  <!-- Outer Glow Circle -->
-  <circle cx="256" cy="256" r="190" fill="none" stroke="rgba(59,130,246,0.3)" stroke-width="3"/>
-  <circle cx="256" cy="256" r="180" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1.5"/>
-  
-  <!-- Coffee Cup Icon -->
-  <g filter="url(#dropShadow)" transform="translate(4, -10)">
-    <!-- Steam Lines -->
-    <path d="M190 140 Q 205 110 195 80" fill="none" stroke="#60A5FA" stroke-width="10" stroke-linecap="round" opacity="0.85"/>
-    <path d="M256 130 Q 270 95 260 65" fill="none" stroke="#93C5FD" stroke-width="11" stroke-linecap="round" opacity="0.95"/>
-    <path d="M322 140 Q 335 110 325 80" fill="none" stroke="#60A5FA" stroke-width="10" stroke-linecap="round" opacity="0.85"/>
 
-    <!-- Cup Body -->
-    <path d="M130 180 L350 180 L325 350 C 320 385, 160 385, 155 350 Z" fill="#FFFFFF"/>
-    
-    <!-- Coffee Surface / Top Oval -->
-    <ellipse cx="240" cy="180" rx="110" ry="20" fill="#E2E8F0"/>
-    <ellipse cx="240" cy="180" rx="90" ry="14" fill="#1E293B"/>
+  <rect width="512" height="512" rx="110" fill="url(#bgGrad)"/>
+  <circle cx="256" cy="256" r="178" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2"/>
 
-    <!-- Cup Handle -->
-    <path d="M340 210 C 400 210, 400 310, 330 310" fill="none" stroke="#FFFFFF" stroke-width="24" stroke-linecap="round"/>
-
-    <!-- Plate / Saucer -->
-    <ellipse cx="240" cy="400" rx="170" ry="22" fill="#FFFFFF" opacity="0.95"/>
-    <ellipse cx="240" cy="400" rx="150" ry="15" fill="#E2E8F0" opacity="0.7"/>
+  <g filter="url(#shadow)">
+    <path d="M158 196h194c0 0 30 0 30 32v96c0 58-44 106-100 106h-54c-56 0-100-48-100-106v-96c0-32 30-32 30-32z" fill="#F8FAFC"/>
+    <path d="M168 196h176c0 0 26 0 26 24v94c0 52-40 94-90 94h-48c-50 0-90-42-90-94v-94c0-24 26-24 26-24z" fill="#E2E8F0" opacity="0.9"/>
+    <path d="M352 222c24 0 42 18 42 41 0 36-24 68-58 76v14c0 21-17 38-38 38h-8" fill="none" stroke="#F8FAFC" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M174 226c24-26 52-39 82-39s58 13 82 39" fill="none" stroke="url(#accentGrad)" stroke-width="14" stroke-linecap="round"/>
+    <path d="M140 248c30-10 48-21 63-40" fill="none" stroke="#FBBF24" stroke-width="10" stroke-linecap="round" opacity="0.8"/>
+    <path d="M205 213c18-20 34-30 51-36" fill="none" stroke="#FBBF24" stroke-width="10" stroke-linecap="round" opacity="0.8"/>
+    <path d="M296 212c18-16 34-24 50-27" fill="none" stroke="#FBBF24" stroke-width="10" stroke-linecap="round" opacity="0.8"/>
+    <ellipse cx="256" cy="390" rx="146" ry="24" fill="#F8FAFC"/>
+    <ellipse cx="256" cy="390" rx="118" ry="15" fill="#CBD5E1" opacity="0.8"/>
   </g>
-  
-  <!-- Brand Text -->
-  <text x="256" y="465" text-anchor="middle" fill="url(#goldGrad)" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="32" letter-spacing="6">COPITO POS</text>
+
+  <text x="256" y="462" text-anchor="middle" fill="#F8FAFC" font-family="Segoe UI, Arial, sans-serif" font-weight="800" font-size="32" letter-spacing="6">COPITO</text>
 </svg>

@@ -54,6 +54,31 @@ const App = {
     { id: 'Transferencia', label: 'Transferencia bancaria', icon: '🏦', tipo: 'BANCARIO' }
   ],
 
+  icon(name, className = '') {
+    const icons = {
+      dashboard: '<svg viewBox="0 0 24 24"><path d="M4 18V9M10 18V5M16 18v-8M22 18V3"/><path d="M2 18h20"/></svg>',
+      package: '<svg viewBox="0 0 24 24"><path d="M3 7.5 12 3l9 4.5-9 4.5L3 7.5Z"/><path d="M3 7.5V16.5L12 21l9-4.5V7.5"/><path d="M12 12V21"/></svg>',
+      report: '<svg viewBox="0 0 24 24"><path d="M5 19V9"/><path d="M12 19V5"/><path d="M19 19v-7"/><path d="M3 19h18"/></svg>',
+      inventory: '<svg viewBox="0 0 24 24"><path d="M4 8 12 3l8 5-8 5-8-5Z"/><path d="M4 8v8l8 5 8-5V8"/><path d="M12 13v8"/></svg>',
+      cash: '<svg viewBox="0 0 24 24"><path d="M4 7h16v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M8 12h8"/></svg>',
+      search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="5.5"/><path d="M16 16l5 5"/></svg>',
+      settings: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M19.4 15a1.8 1.8 0 0 0 .36 1.97l.05.05a2 2 0 0 1-2.83 2.83l-.05-.05A1.8 1.8 0 0 0 15 19.4a1.8 1.8 0 0 0-1.08 1.64V21a2 2 0 0 1-4 0v-.08A1.8 1.8 0 0 0 8.84 19.4a1.8 1.8 0 0 0-1.97.36l-.05.05a2 2 0 1 1-2.83-2.83l.05-.05A1.8 1.8 0 0 0 4.6 15a1.8 1.8 0 0 0-1.64-1.08H2.88a2 2 0 0 1 0-4h.08A1.8 1.8 0 0 0 4.6 8.84a1.8 1.8 0 0 0-.36-1.97l-.05-.05a2 2 0 1 1 2.83-2.83l.05.05A1.8 1.8 0 0 0 8.84 4.6a1.8 1.8 0 0 0 1.08-1.64V2.88a2 2 0 0 1 4 0v.08A1.8 1.8 0 0 0 15.16 4.6a1.8 1.8 0 0 0 1.97-.36l.05-.05a2 2 0 1 1 2.83 2.83l-.05.05A1.8 1.8 0 0 0 19.4 8.84a1.8 1.8 0 0 0 1.64 1.08h.08a2 2 0 0 1 0 4h-.08A1.8 1.8 0 0 0 19.4 15Z"/></svg>',
+      exit: '<svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>',
+      ring: '<svg viewBox="0 0 24 24"><path d="M12 3v5"/><path d="M12 16v5"/><path d="M3 12h5"/><path d="M16 12h5"/><circle cx="12" cy="12" r="4"/></svg>',
+      info: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 10v6"/><path d="M12 7h.01"/></svg>',
+      check: '<svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 2"/></svg>',
+      alert: '<svg viewBox="0 0 24 24"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>',
+      plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+      edit: '<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"/></svg>',
+      trash: '<svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>',
+      eye: '<svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>',
+      table: '<svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/><path d="M8 4v16M16 4v16"/></svg>',
+      cup: '<svg viewBox="0 0 24 24"><path d="M5 9h12v8a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V9Z"/><path d="M17 9h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2"/><path d="M7 3v3M12 3v3M17 3v3"/></svg>'
+    };
+    const svg = icons[name] || icons.info;
+    return `<span class="app-icon ${className}" aria-hidden="true">${svg}</span>`;
+  },
+
   LUGARES: [
     { id: 'Barra 1', tipo: 'barra', label: 'Barra 1', icon: '🥃' },
     { id: 'Barra 2', tipo: 'barra', label: 'Barra 2', icon: '🥃' },
@@ -110,6 +135,12 @@ const App = {
     const actionBtn = e.target.closest('[data-action]');
     if (!actionBtn) return;
     const action = actionBtn.dataset.action;
+    // Fallback: si PosController no se cargó (red móvil inestable),
+    // enrutar acciones POS a los métodos legacy de App en vez de ignorarlas.
+    if (typeof PosController === 'undefined' && (action.indexOf('pos-') === 0 || action === 'volver-mesas')) {
+      this._handlePosFallback(action, actionBtn);
+      return;
+    }
     const actions = {
       'save-product': () => this.guardarProducto(),
       'save-movement': () => this.guardarMovimiento(),
@@ -127,7 +158,7 @@ const App = {
       'cerrar-modal': () => this.cerrarModal(),
       'refresh-mesas': () => this.cargarVistaMesas(),
       'crear-pedido': () => this.crearPedido(),
-      'agregar-item': () => this.mostrarPosOrder(this.state.currentPedidoId),
+      'agregar-item': () => this.mostrarPosOrder(this.state.currentPedidoId || Store.get('pedidos.currentId')),
       'seleccionar-producto-menu': () => this.seleccionarProductoMenu(actionBtn.dataset.codigo),
       'guardar-item-menu': () => this.guardarItemMenu(),
       'eliminar-item': () => this.confirmarEliminarItem(actionBtn.dataset.detalleid),
@@ -138,12 +169,12 @@ const App = {
       'cancelar-pedido': () => this.confirmarCancelarPedido(),
       'editar-pedido': () => this.mostrarFormEditarPedido(),
       'guardar-edicion-pedido': () => this.guardarEdicionPedido(),
-      'volver-mesas': () => this.cargarVistaMesas(),
+      // 'volver-mesas' handled by PosController._bindEvents with stopPropagation.
       'cancelar-item-form': () => this.cerrarModal(),
-      'descargar-factura': () => this.descargarFactura(actionBtn.dataset.pedidoid),
-      'imprimir-ticket': () => this.descargarFactura(actionBtn.dataset.pedidoid || this.state.currentPedidoId),
+      'descargar-factura': () => this.descargarFactura(actionBtn.dataset.pedidoid || Store.get('pedidos.currentId')),
+      'imprimir-ticket': () => this.descargarFactura(actionBtn.dataset.pedidoid || this.state.currentPedidoId || Store.get('pedidos.currentId')),
       'imprimir-comanda': () => {
-        const pId = actionBtn.dataset.pedidoid || this.state.currentPedidoId;
+        const pId = actionBtn.dataset.pedidoid || this.state.currentPedidoId || Store.get('pedidos.currentId');
         if (window.Ticket) Ticket.mostrarModal(pId, { tipo: 'comanda' });
       },
       'ver-historial-pedido': () => {
@@ -170,11 +201,13 @@ const App = {
       'desactivar-usuario': () => this.desactivarUsuario(actionBtn.dataset.userid),
       'reactivar-usuario': () => this.reactivarUsuario(actionBtn.dataset.userid),
       'filtrar-auditoria': () => this.filtrarAuditoria(),
-      'abrir-caja': () => this.abrirCajaHandler(),
-      'registrar-mov-caja': () => this.registrarMovCaja(),
-      'cerrar-caja-modal': () => this.cerrarCajaModal(),
-      'confirmar-cierre-caja': () => this.confirmarCierreCaja(),
-      'propina-general': () => { if (this.mostrarModalPropinaGeneral) this.mostrarModalPropinaGeneral(); },
+      'export-excel-auditoria': () => this.exportarExcelAuditoria(),
+      // ─── Caja actions — delegated to CajaController ───
+      // 'abrir-caja', 'registrar-mov-caja', 'cerrar-caja-modal', 'confirmar-cierre-caja'
+      // are handled by CajaController._bindCajaEvents to avoid double-execution.
+      // 'propina-general' handled by CajaController._bindCajaEvents.
+      // ─── POS actions — delegated to PosController ───
+      // 'volver-mesas', 'descargar-factura' handled by PosController._bindEvents.
       'generar-reporte-ventas': () => this.generarReporteVentas(),
       'generar-reporte-semanal': () => this.generarReporteVentasSemanal(),
       'export-excel-movimientos': () => this.exportarExcel('movimientos'),
@@ -230,26 +263,56 @@ const App = {
       // ─── Angie ───
       'angie-registrar': () => this.angieRegistrar(),
       'angie-eliminar': () => this.angieEliminar(actionBtn.dataset.id),
-      // ─── POS Split-Screen ───
-      'pos-add': () => this._posAdd(actionBtn.dataset.codigo),
-      'pos-qty': () => this._posQty(actionBtn.dataset.codigo, parseInt(actionBtn.dataset.d)),
-      'pos-cat': () => this._posSetCat(actionBtn.dataset.cat),
-      'pos-cobrar': () => this._posCobrar(),
-      'pos-comanda': () => this._posComanda(),
-      'pos-cancelar': () => this._posCancelar(),
-      'pos-split': () => this._posSplit(),
-      'pos-split-assign': () => this._posSplitAssign(parseInt(actionBtn.dataset.idx), actionBtn.dataset.cuenta),
-      'pos-split-confirm': () => this._posSplitConfirm(),
-      'pos-split-cancel': () => this._posSplitCancel(),
-      'pos-split-exit': () => { this._pos.splitMode = false; this._pos.cart.forEach(i => { delete i.cuenta; }); this._posRenderTicket(); },
-      'pos-cobrar-cuenta': () => this._posCobrarCuenta(actionBtn.dataset.cuenta),
-      'pos-volver-detalle': () => this.cargarVistaMesas(),
-      'pos-toggle-pagos': () => { const el = document.getElementById('posPagosList'); if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none'; },
-      'pos-cancelar-pedido': () => this._posCancelarPedido(),
-      'pos-editar-pedido': () => this._posEditarPedido(),
-      'pos-guardar-edicion': () => this._posGuardarEdicion(),
+      // ─── POS Split-Screen (handled by PosController._bindEvents) ───
+      // pos-add, pos-qty, pos-cat, pos-cobrar, pos-comanda, pos-cancelar,
+      // pos-split, pos-split-assign, pos-cobrar-cuenta, pos-volver-detalle,
+      // pos-toggle-pagos, pos-cancelar-pedido, pos-editar-pedido
+      // are all delegated to PosController to avoid double-execution.
     };
     if (actions[action]) actions[action]();
+  },
+
+  // Solo se usa cuando PosController no se cargó. Delega a App._pos*
+  // (que a su vez usan el legacy de pos_order.js como respaldo).
+  async _handlePosFallback(action, btn) {
+    try {
+      switch (action) {
+        case 'pos-add': return this._posAdd(btn.dataset.codigo);
+        case 'pos-qty': return this._posQty(btn.dataset.codigo, btn.dataset.d);
+        case 'pos-cat': return this._posSetCat(btn.dataset.cat);
+        case 'pos-cobrar': return this._posCobrar();
+        case 'pos-cobrar-cuenta': return this._posCobrarCuenta(btn.dataset.cuenta);
+        case 'pos-cancelar': return this._posCancelar();
+        case 'pos-split': return this._posSplit();
+        case 'pos-split-exit':
+        case 'pos-split-cancel': return this._posSplitCancel();
+        case 'pos-split-assign': return this._posSplitAssign(parseInt(btn.dataset.idx), btn.dataset.cuenta);
+        case 'pos-comanda': return this._posComanda();
+        case 'pos-cancelar-pedido': return this._posCancelarPedido();
+        case 'pos-editar-pedido': return this._posEditarPedido();
+        case 'pos-volver-detalle': {
+          const pid = this.state.currentPedidoId || (typeof Store !== 'undefined' ? Store.get('pedidos.currentId') : null);
+          try { if (typeof this._posSyncCart === 'function') await this._posSyncCart(); } catch (err) {
+            if (!confirm('No se pudieron guardar los items (' + err.message + '). ¿Recargar de todas formas?')) return;
+          }
+          if (pid) return this.verPedido(pid);
+          return this.cargarVistaMesas();
+        }
+        case 'volver-mesas': {
+          try { if (typeof this._posSyncCart === 'function') await this._posSyncCart(); } catch (err) {
+            if (!confirm('No se pudieron guardar los items (' + err.message + '). ¿Salir de todas formas?')) return;
+          }
+          return this.cargarVistaMesas();
+        }
+        case 'pos-toggle-pagos': {
+          const list = document.getElementById('posPagosList');
+          if (list) list.style.display = list.style.display === 'none' ? 'block' : 'none';
+          return;
+        }
+      }
+    } catch (err) {
+      this.showMessage('mesaMsg', 'Error: ' + err.message, 'error');
+    }
   },
 
 
@@ -334,20 +397,26 @@ App.init = function() {
   const savedTheme = localStorage.getItem('dpcoffee-theme');
   if (savedTheme === 'dark') {
     document.documentElement.setAttribute('data-theme', 'dark');
-    if (darkToggle) darkToggle.textContent = '☀️';
+    if (darkToggle) darkToggle.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg>';
   }
   if (darkToggle) {
+    const updateDarkToggle = () => {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      darkToggle.innerHTML = isDark
+        ? '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path></svg>'
+        : '<svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z"></path></svg>';
+    };
+    updateDarkToggle();
     darkToggle.addEventListener('click', () => {
       const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
       if (isDark) {
         document.documentElement.removeAttribute('data-theme');
         localStorage.setItem('dpcoffee-theme', 'light');
-        darkToggle.textContent = '🌙';
       } else {
         document.documentElement.setAttribute('data-theme', 'dark');
         localStorage.setItem('dpcoffee-theme', 'dark');
-        darkToggle.textContent = '☀️';
       }
+      updateDarkToggle();
     });
   }
 
@@ -359,7 +428,10 @@ App.init = function() {
     const userRoleEl = document.getElementById('sidebarUserRole');
     if (userSection) userSection.style.display = 'block';
     if (userNameEl) userNameEl.textContent = user.nombre;
-    if (userRoleEl) userRoleEl.textContent = user.rol === 'admin' ? '👑 Administrador' : '🛒 Vendedor';
+    if (userRoleEl) {
+      const roleIcon = user.rol === 'admin' ? '' : "<svg viewBox=\"0 0 24 24\"><path d=\"M6 7h12v9a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V7Z\"/><path d=\"M9 7V5h6v2\"/><path d=\"M9 12h6\"/></svg>";
+      userRoleEl.innerHTML = `${roleIcon} <span>${user.rol === 'admin' ? 'Administrador' : 'Vendedor'}</span>`;
+    }
 
     // Hide admin-only menus for vendedor
     if (user.rol === 'vendedor') {
@@ -377,8 +449,78 @@ App.init = function() {
     if (e.target.matches('[data-action="asignar-cuenta-select"]')) {
       const detalleId = e.target.dataset.detalleid;
       const cuenta = e.target.value;
-      if (detalleId && cuenta) App.asignarCuenta(detalleId, cuenta);
+      if (detalleId && cuenta) PedidosController.asignarCuenta(detalleId, cuenta);
     }
+  });
+
+  // ─── MVC Controllers initialization ─────────────────
+  if (typeof PedidosController !== 'undefined') PedidosController.init();
+  if (typeof CajaController !== 'undefined') CajaController.init();
+  if (typeof PosController !== 'undefined') PosController.init();
+
+  // Delegate key App methods to controllers (migration bridge)
+  const _origVerPedido = App.verPedido;
+  App.verPedido = function(pedidoId) {
+    App.state.currentPedidoId = pedidoId;
+    return PedidosController.verPedido(pedidoId);
+  };
+  App.mostrarMenuProductos = function() { return PedidosController.mostrarMenuProductos(); };
+  App.confirmarCerrarPedido = function() { return PedidosController.confirmarCerrarPedido(); };
+  App.confirmarCerrarPedidoPago = function() { return PedidosController.confirmarCerrarPedidoPago(); };
+  App.confirmarCancelarPedido = function() { return PedidosController.confirmarCancelarPedido(); };
+  App.mostrarFormEditarPedido = function() { return PedidosController.mostrarFormEditarPedido(); };
+  App.guardarEdicionPedido = function() { return PedidosController.guardarEdicionPedido(); };
+  App.activarSplit = function() { return PedidosController.activarSplit(); };
+  App.agregarCuenta = function() { return PedidosController.agregarCuenta(); };
+  App.cerrarCuenta = function(c) { return PedidosController.cerrarCuenta(c); };
+  App.pagarItem = function(id) { return PedidosController.pagarItem(id); };
+  App.pagarSeleccionados = function() { return PedidosController.pagarSeleccionados(); };
+  App.abonarCuentaUI = function(c) { return PedidosController.abonarCuentaUI(c); };
+  App.mostrarModalPagarCuenta = function(c) { return PedidosController.mostrarModalPagarCuenta(c); };
+  App.mostrarModalPropina = function(pid, l, p) { return PedidosController.mostrarModalPropina(pid, l, p); };
+  App.mostrarModalPropinaGeneral = function() { return PedidosController.mostrarModalPropinaGeneral(); };
+  App.cargarCaja = function() { return CajaController.cargarCaja(); };
+  const _origMostrarPosOrder = App.mostrarPosOrder;
+  App.mostrarPosOrder = function(pid) {
+    if (typeof PosController !== 'undefined') return PosController.mostrarPosOrder(pid);
+    if (_origMostrarPosOrder) return _origMostrarPosOrder.call(App, pid);
+    throw new Error('Módulo POS no cargado. Recargue la página.');
+  };
+  // POS internal methods — delegate to PosController, fallback to legacy
+  // pos_order.js methods when the controller script failed to load
+  // (flaky mobile network). Preserves pre-bridge originals first.
+  const _origPos = {};
+  ['_posAdd', '_posQty', '_posSetCat', '_posCobrar', '_posCobrarCuenta', '_posCancelar',
+   '_posSplit', '_posSplitAssign', '_posSplitCancel', '_posComanda', '_posCancelarPedido',
+   '_posEditarPedido', '_posRenderTicket', '_posRenderProducts', '_posRenderCats'].forEach(k => {
+    if (typeof App[k] === 'function') _origPos[k] = App[k];
+  });
+  const _posBridge = (key, ctrlKey) => function(...args) {
+    if (typeof PosController !== 'undefined' && typeof PosController[ctrlKey] === 'function') {
+      return PosController[ctrlKey](...args);
+    }
+    if (_origPos[key]) return _origPos[key].apply(App, args);
+    throw new Error('Módulo POS no cargado. Recargue la página.');
+  };
+  App._posAdd = _posBridge('_posAdd', '_posAdd');
+  App._posQty = _posBridge('_posQty', '_posQty');
+  App._posSetCat = _posBridge('_posSetCat', '_posSetCat');
+  App._posCobrar = _posBridge('_posCobrar', '_posCobrar');
+  App._posCobrarCuenta = _posBridge('_posCobrarCuenta', '_posCobrarCuenta');
+  App._posCancelar = _posBridge('_posCancelar', '_posCancelar');
+  App._posSplit = _posBridge('_posSplit', '_posSplit');
+  App._posSplitAssign = _posBridge('_posSplitAssign', '_posSplitAssign');
+  App._posSplitConfirm = function() { /* legacy no-op */ };
+  App._posSplitCancel = _posBridge('_posSplitCancel', '_posSplitExit');
+  App._posComanda = _posBridge('_posComanda', '_posComanda');
+  App._posCancelarPedido = _posBridge('_posCancelarPedido', '_posCancelarPedido');
+  App._posEditarPedido = _posBridge('_posEditarPedido', '_posEditarPedido');
+  App._posRenderTicket = _posBridge('_posRenderTicket', '_renderTicket');
+  // Bridge old _pos reads to Store
+  Object.defineProperty(App, '_pos', {
+    get() { return Store.get('pos'); },
+    set(v) { Object.assign(Store._state.pos, v); },
+    configurable: true
   });
 
   window.addEventListener('resize', () => {

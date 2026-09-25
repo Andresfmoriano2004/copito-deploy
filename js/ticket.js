@@ -15,7 +15,7 @@ const Ticket = {
   },
 
   fmt(n) {
-    return '$ ' + Number(n || 0).toLocaleString('es-CO', {
+    return '$' + Number(n || 0).toLocaleString('es-CO', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     });

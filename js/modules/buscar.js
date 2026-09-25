@@ -12,7 +12,7 @@ Object.assign(App, {
         <div class="card"><div class="card-header">Buscar Productos</div><div class="card-body">
           <div class="form-grid">
             <div class="form-group"><label for="globalSearch">Buscar por nombre, código o categoría</label>
-              <div class="search-box"><span class="search-icon" aria-hidden="true">🔍</span><input id="globalSearch" type="text" placeholder="Escriba para buscar..." autocomplete="off"></div>
+              <div class="search-box"><span class="search-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="5.5"/><path d="M16 16l5 5"/></svg></span><input id="globalSearch" type="text" placeholder="Escriba para buscar..." autocomplete="off"></div>
             </div>
           </div>
           <div class="table-container"><table class="tabla-responsive"><thead><tr><th>Código</th><th>Nombre</th><th>Unidad</th><th>Grupo</th><th>Stock</th><th>Precio</th></tr></thead>

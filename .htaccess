@@ -7,6 +7,9 @@
 
 Options -Indexes
 
+# Impedir que mod_dir añada trailing slash a URLs de API (causa redirects HTTP con ngrok)
+DirectorySlash Off
+
 # Bloquear archivos sensibles
 <FilesMatch "\.(env|sql|log|err)$|^(debug|fix_password|test_|check_env)">
   <IfModule mod_authz_core.c>
@@ -21,6 +24,7 @@ Options -Indexes
 # ─── Reescritura de URLs ──────────────────────────────────────────────────────
 <IfModule mod_rewrite.c>
   RewriteEngine On
+  RewriteBase /copito-deploy/
 
   # Preservar header Authorization para PHP (Laragon/Apache lo strippea sin esto)
   RewriteCond %{HTTP:Authorization} ^(.*)
@@ -36,9 +40,8 @@ Options -Indexes
   # /api → api.php pasando la sub-ruta como parámetro GET explícito
   RewriteRule ^api(/.*)?$ api.php?route=$1 [L,QSA]
 
-  # Archivos y directorios reales → servir directamente
-  RewriteCond %{REQUEST_FILENAME} -f [OR]
-  RewriteCond %{REQUEST_FILENAME} -d
+  # Archivos reales → servir directamente
+  RewriteCond %{REQUEST_FILENAME} -f
   RewriteRule ^ - [L]
 
   # SPA fallback → index.html

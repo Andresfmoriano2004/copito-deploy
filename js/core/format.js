@@ -37,7 +37,7 @@ Object.assign(App, {
   },
 
   fmt(n) {
-    return this.CURRENCY.symbol + ' ' + Math.round(Number(n || 0)).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    return this.CURRENCY.symbol + Math.round(Number(n || 0)).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   },
 
 // ─── Fechas centralizadas (America/Bogota) ─────────────────────────────

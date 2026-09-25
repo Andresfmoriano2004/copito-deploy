@@ -111,15 +111,15 @@ Object.assign(App, {
   filaProducto(p) {
     return `<tr>
       <td data-label="Código"><strong>${this.escapeHtml(p.codigo)}</strong></td>
-      <td data-label="Producto" class="prod-nombre-cell">${p.imagenUrl ? `<img src="${this.escapeHtml(imgUrl(p.imagenUrl))}" alt="" loading="lazy" onerror="this.remove()" class="prod-thumb">` : '<span class="prod-sin-imagen" aria-hidden="true">🖼️</span>'}<span>${this.escapeHtml(p.nombre)}</span></td>
+      <td data-label="Producto" class="prod-nombre-cell">${p.imagenUrl ? `<img src="${this.escapeHtml(imgUrl(p.imagenUrl))}" alt="" loading="lazy" onerror="this.remove()" class="prod-thumb">` : '<span class="prod-sin-imagen" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 15l5-5 4 4 5-7 4 8"/></svg></span>'}<span>${this.escapeHtml(p.nombre)}</span></td>
       <td data-label="Unidad">${this.escapeHtml(p.unidad)}</td>
       <td data-label="Categoría">${this.escapeHtml(p.grupo)}</td>
       <td data-label="Stock" style="color:${p.stockActual < p.stockMinimo ? 'var(--danger)' : 'var(--success)'};font-weight:600;">${p.stockActual} <small style="color:var(--text-muted);font-weight:400;">(mín ${p.stockMinimo})</small></td>
       <td data-label="Precio">${this.fmt(p.precio)}</td>
       <td data-label="Estado">${p.stockActual <= 0 ? '<span class="badge badge-cancelado">Sin stock</span>' : (p.stockActual < p.stockMinimo ? '<span class="badge badge-bajo">⚠ Bajo</span>' : '<span class="badge badge-ok">✔ OK</span>')}</td>
-      <td data-label="Acciones" class="prod-acciones"><button class="btn-icon" data-action="view-product" data-codigo="${this.escapeHtml(p.codigo)}" title="Ver detalle"><img width="25" height="25" src="https://img.icons8.com/office/30/visible--v1.png" alt="visible--v1"/></button>
-          <button class="btn-icon" data-action="edit-product" data-codigo="${this.escapeHtml(p.codigo)}" title="Editar"><img width="25" height="25" src="https://img.icons8.com/office/30/create-new.png" alt="create-new"/></button>
-          <button class="btn-icon" data-action="delete-product" data-codigo="${this.escapeHtml(p.codigo)}" data-nombre="${this.escapeHtml(p.nombre)}" title="Eliminar"><img width="25" height="25" src="https://img.icons8.com/office/30/delete--v1.png" alt="delete--v1"/></button></td>
+      <td data-label="Acciones" class="prod-acciones"><button class="btn-icon" data-action="view-product" data-codigo="${this.escapeHtml(p.codigo)}" title="Ver detalle" aria-label="Ver detalle"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          <button class="btn-icon" data-action="edit-product" data-codigo="${this.escapeHtml(p.codigo)}" title="Editar" aria-label="Editar"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"/></svg></button>
+          <button class="btn-icon" data-action="delete-product" data-codigo="${this.escapeHtml(p.codigo)}" data-nombre="${this.escapeHtml(p.nombre)}" title="Eliminar" aria-label="Eliminar"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button></td>
     </tr>`;
   },
 
@@ -191,7 +191,7 @@ Object.assign(App, {
       modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:2000;font-family:var(--font);';
       modal.innerHTML = `<div style="background:white;border-radius:12px;padding:30px;max-width:450px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);max-height:calc(100vh - 40px);max-height:calc(100dvh - 40px);overflow-y:auto;">
         <h3 style="color:var(--primary);margin-bottom:15px;">${this.escapeHtml(prod.nombre)}</h3>
-        <div style="text-align:center;margin-bottom:15px;">${prod.imagenUrl ? `<img src="${this.escapeHtml(imgUrl(prod.imagenUrl))}" alt="Imagen de ${this.escapeHtml(prod.nombre)}" style="max-width:100%;max-height:220px;border-radius:10px;object-fit:cover;" onerror="this.remove()">` : '<div style="font-size:3rem;">🖼️</div><div style="color:var(--text-muted);font-size:0.85rem;">Sin imagen</div>'}</div>
+        <div style="text-align:center;margin-bottom:15px;">${prod.imagenUrl ? `<img src="${this.escapeHtml(imgUrl(prod.imagenUrl))}" alt="Imagen de ${this.escapeHtml(prod.nombre)}" style="max-width:100%;max-height:220px;border-radius:10px;object-fit:cover;" onerror="this.remove()">` : '<div style="font-size:2rem;display:flex;align-items:center;justify-content:center;height:80px;color:var(--text-muted);"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 15l5-5 4 4 5-7 4 8"/></svg></div><div style="color:var(--text-muted);font-size:0.85rem;">Sin imagen</div>'}</div>
         <table style="width:100%;"><tr><td style="padding:6px 0;color:var(--text-muted);">Código</td><td style="padding:6px 0;font-weight:600;">${this.escapeHtml(prod.codigo)}</td></tr>
         <tr><td style="padding:6px 0;color:var(--text-muted);">Unidad</td><td style="padding:6px 0;">${this.escapeHtml(prod.unidad)}</td></tr>
         <tr><td style="padding:6px 0;color:var(--text-muted);">Grupo</td><td style="padding:6px 0;">${this.escapeHtml(prod.grupo)}</td></tr>
@@ -217,7 +217,7 @@ Object.assign(App, {
         Promise.all([obtenerGrupos(), obtenerUnidades()]).then(([grupos, unidades]) => {
           modal.innerHTML = `<div style="background:white;border-radius:12px;padding:30px;max-width:550px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.3);max-height:calc(100vh - 40px);max-height:calc(100dvh - 40px);overflow-y:auto;">
             <h3 style="color:var(--primary);margin-bottom:20px;">Editar Producto</h3>
-            <div style="text-align:center;margin-bottom:15px;">${prod.imagenUrl ? `<img src="${this.escapeHtml(imgUrl(prod.imagenUrl))}" alt="" style="max-width:100%;max-height:160px;border-radius:10px;object-fit:cover;" onerror="this.remove()">` : '<div style="font-size:2.5rem;">🖼️</div><div style="color:var(--text-muted);font-size:0.85rem;">Sin imagen</div>'}</div>
+            <div style="text-align:center;margin-bottom:15px;">${prod.imagenUrl ? `<img src="${this.escapeHtml(imgUrl(prod.imagenUrl))}" alt="" style="max-width:100%;max-height:160px;border-radius:10px;object-fit:cover;" onerror="this.remove()">` : '<div style="font-size:2rem;display:flex;align-items:center;justify-content:center;height:70px;color:var(--text-muted);"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 15l5-5 4 4 5-7 4 8"/></svg></div><div style="color:var(--text-muted);font-size:0.85rem;">Sin imagen</div>'}</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px;padding:10px;background:var(--primary-bg-light);border-radius:8px;">
               <div><span style="color:var(--text-muted);font-size:0.85rem;">Stock Actual</span><br><span style="font-size:1.3rem;font-weight:700;color:${prod.stockActual < prod.stockMinimo ? 'var(--danger)' : 'var(--success)'}">${prod.stockActual}</span></div>
               <div><span style="color:var(--text-muted);font-size:0.85rem;">Valor Inventario</span><br><span style="font-size:1.3rem;font-weight:700;">${this.fmt((prod.stockActual || 0) * (prod.costo || 0))}</span></div>

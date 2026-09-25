@@ -1,0 +1,2 @@
+# Bloquear acceso directo a shared/
+Require all denied
