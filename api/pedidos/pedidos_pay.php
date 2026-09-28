@@ -26,7 +26,11 @@ if ($method === 'POST' && preg_match('#^pedidos/(.+)/cerrar$#', $path, $m)) {
 
     $previo = getPreviouslyPaid($pdo, $id);
     $totalConPago = round($previo + $nuevoPago, 2);
-    if ($totalConPago < $total - 0.01) { $pdo->rollBack(); jsonError("El total pagado ($" . number_format($totalConPago, 0, ',', '.') . ") es menor que el total ($" . number_format($total, 0, ',', '.') . ")"); }
+    $saldoPendiente = round(max(0, $total - $totalConPago), 2);
+    if ($totalConPago > $total + 0.01) {
+      $pdo->rollBack();
+      jsonError("El pago ($" . number_format($nuevoPago, 0, ',', '.') . ") excede el saldo pendiente ($" . number_format($saldoPendiente > 0 ? $saldoPendiente : 0, 0, ',', '.') . ")");
+    }
 
     $soloPend = getUnpaidItems($pdo, $id);
     $metodoNotas = $pagos[0]['metodoPago'] ?? 'Efectivo';
@@ -36,14 +40,20 @@ if ($method === 'POST' && preg_match('#^pedidos/(.+)/cerrar$#', $path, $m)) {
     if ($soloPend) registrarMovimientosStock($pdo, $soloPend, "Pedido $id", $authUser['id']);
 
     $metodos = implode(', ', array_map(fn($p) => $p['metodoPago'], $pagos));
-    $pdo->prepare("UPDATE pedidos SET estado='Cerrado', fecha_cierre=NOW(), metodo_pago=? WHERE id_pedido=?")->execute([$metodos, $id]);
+    $pedidoCerrado = $totalConPago >= $total - 0.01;
+    if ($pedidoCerrado) {
+      $pdo->prepare("UPDATE pedidos SET estado='Cerrado', fecha_cierre=NOW(), metodo_pago=? WHERE id_pedido=?")->execute([$metodos, $id]);
+    } else {
+      $pdo->prepare("UPDATE pedidos SET estado='Abierto', metodo_pago=? WHERE id_pedido=?")->execute([$metodos, $id]);
+    }
     $pdo->commit();
-    auditLog($authUser, 'REGISTRAR_PAGO', $id, $pedRow['lugar'], ['monto' => $total, 'metodos' => $metodos]);
+    auditLog($authUser, 'REGISTRAR_PAGO', $id, $pedRow['lugar'], ['monto' => $nuevoPago, 'total' => $total, 'pagado' => $totalConPago, 'pendiente' => $saldoPendiente, 'metodos' => $metodos]);
   } catch (Exception $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
     error_log('Copito error cerrando pedido ' . $id . ': ' . $e->getMessage());
     jsonError('No se pudo cerrar el pedido: ' . $e->getMessage(), 500);
   }
 
-  jsonResponse(['success' => true, 'mensaje' => 'Pedido cerrado correctamente']);
+  $mensaje = $totalConPago >= $total - 0.01 ? 'Pedido cerrado correctamente' : 'Pago parcial registrado correctamente';
+  jsonResponse(['success' => true, 'mensaje' => $mensaje, 'pagado' => round($totalConPago, 2), 'pendiente' => round(max(0, $total - $totalConPago), 2)]);
 }
