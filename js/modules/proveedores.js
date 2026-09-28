@@ -125,3 +125,13 @@ Object.assign(App, {
       .catch(err => alert('Error: ' + err.message));
   }
 });
+
+if (typeof AppEventRouter !== 'undefined') {
+  AppEventRouter.registerMany({
+    'crear-proveedor': () => App.crearProveedor(),
+    'eliminar-proveedor': ({ button }) => App.eliminarProveedor(button.dataset.id),
+    'reactivar-proveedor': ({ button }) => App.reactivarProveedor(button.dataset.id),
+    'editar-proveedor': ({ button }) => App.editarProveedor(button.dataset.id),
+    'guardar-edicion-proveedor': ({ button }) => App.guardarEdicionProveedor(button.dataset.id)
+  });
+}

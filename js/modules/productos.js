@@ -207,6 +207,8 @@ Object.assign(App, {
   },
 
 
+  // Product module actions are registered in AppEventRouter to avoid
+  // keeping all UI actions in the global App.handleClick switch.
   mostrarFormProducto(codigo) {
     this.cerrarModal();
     const modal = document.createElement('div');

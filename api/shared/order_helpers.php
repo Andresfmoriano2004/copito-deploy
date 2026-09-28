@@ -6,7 +6,7 @@ function generarId() {
 }
 
 function fetchPedido($pdo, $id) {
-  $stmt = $pdo->prepare('SELECT * FROM pedidos WHERE id_pedido=?');
+  $stmt = $pdo->prepare ('SELECT * FROM pedidos WHERE id_pedido=?');
   $stmt->execute([$id]);
   return $stmt->fetch();
 }

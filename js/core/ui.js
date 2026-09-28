@@ -262,28 +262,54 @@ Object.assign(App, {
   },
 
 
+  normalizeMessageType(type) {
+    return ['success', 'error', 'warning', 'info'].includes(type) ? type : 'info';
+  },
+
+  safeText(value) {
+    const text = value === null || value === undefined ? '' : String(value);
+    return this.escapeHtml ? this.escapeHtml(text) : text.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m]);
+  },
+
   showMessage(id, text, type) {
     const el = typeof id === 'string' ? document.getElementById(id) : id;
     if (!el) { console.warn('showMessage: element not found', id); return; }
-    const safeText = this.escapeHtml ? this.escapeHtml(text) : String(text).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m]);
-    const safeType = this.escapeHtml ? this.escapeHtml(type) : type;
-    el.innerHTML = `<div class="message ${safeType}">${safeText}</div>`;
-    if (type !== 'error') setTimeout(() => { el.innerHTML = ''; }, 5000);
+
+    const normalizedType = this.normalizeMessageType(type);
+    const safeText = this.safeText(text);
+    el.innerHTML = `<div class="message ${normalizedType}">${safeText}</div>`;
+
+    if (normalizedType !== 'error') {
+      setTimeout(() => {
+        if (el && el.innerHTML.includes('message')) el.innerHTML = '';
+      }, 5000);
+    }
+  },
+
+  createModalBackdrop(html, options = {}) {
+    this.cerrarModal();
+    const modal = document.createElement('div');
+    const width = options.width || '500px';
+    modal.className = 'modal-backdrop';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:2000;font-family:var(--font);';
+
+    const panel = document.createElement('div');
+    panel.style.cssText = `background:#FFFFFF;color:#1E293B;border-radius:12px;padding:24px;max-width:${width};width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.3);${options.panelExtra || ''}`;
+    panel.innerHTML = `${html}<div id="modalMsg" aria-live="polite"></div>`;
+    modal.appendChild(panel);
+    modal.addEventListener('click', e => { if (e.target === modal) this.cerrarModal(); });
+    document.body.appendChild(modal);
+    return modal;
   },
 
 
   cerrarModal() {
     document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+    this._confirmarPromptCallback = null;
   },
 
-  mostrarModal(html) {
-    this.cerrarModal();
-    const modal = document.createElement('div');
-    modal.className = 'modal-backdrop';
-    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:2000;font-family:var(--font);';
-    modal.innerHTML = `<div style="background:#FFFFFF;color:#1E293B;border-radius:12px;padding:24px;max-width:500px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.3);">${html}<div id="modalMsg" aria-live="polite"></div></div>`;
-    modal.addEventListener('click', e => { if (e.target === modal) this.cerrarModal(); });
-    document.body.appendChild(modal);
+  mostrarModal(html, options = {}) {
+    return this.createModalBackdrop(html, options);
   },
 
 

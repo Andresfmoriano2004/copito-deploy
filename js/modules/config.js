@@ -261,3 +261,20 @@ Object.assign(App, {
       .catch(err => msg('Error: ' + err.message, 'error'));
   }
 });
+
+if (typeof AppEventRouter !== 'undefined') {
+  AppEventRouter.registerMany({
+    'show-add-grupo': () => App.mostrarFormCrearGrupo(),
+    'show-add-unidad': () => App.mostrarFormCrearUnidad(),
+    'eliminar-grupo': ({ button }) => App.eliminarGrupo(button.dataset.nombre),
+    'eliminar-unidad': ({ button }) => App.eliminarUnidad(button.dataset.nombre),
+    'crear-colaborador': () => App.crearColaborador(),
+    'desactivar-usuario': ({ button }) => App.desactivarUsuario(button.dataset.userid),
+    'reactivar-usuario': ({ button }) => App.reactivarUsuario(button.dataset.userid),
+    'filtrar-auditoria': () => App.filtrarAuditoria(),
+    'export-excel-auditoria': () => App.exportarExcelAuditoria(),
+    'abrir-limpieza': () => App.abrirLimpieza(),
+    'ejecutar-limpieza': () => App.ejecutarLimpieza(),
+    'clear-all-records': () => App.clearAllRecords()
+  });
+}

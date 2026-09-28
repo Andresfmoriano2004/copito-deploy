@@ -15,6 +15,10 @@ const App = {
     user: null
   },
 
+  _initialized: false,
+  _globalEventListenersBound: false,
+  _controllerBridgeBound: false,
+
   TABS: ['dashboard', 'productos', 'movimientos', 'proveedores', 'inventario', 'reportes', 'materia-prima', 'recetas', 'angie', 'buscar', 'mesas', 'caja', 'configuracion'],
 
   TAB_TITLES: {
@@ -96,16 +100,22 @@ const App = {
   showTab(tab) {
     this.state.currentTab = tab;
     try { localStorage.setItem('copito_tab', tab); } catch(e) {}
-    this.TABS.forEach(t => {
-      const section = document.getElementById(t);
-      if (section) section.style.display = t === tab ? 'block' : 'none';
-    });
-    document.querySelectorAll('.sidebar nav button, .nav-link').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.tab === tab);
-      btn.setAttribute('aria-selected', btn.dataset.tab === tab ? 'true' : 'false');
-    });
+
+    if (typeof Router !== 'undefined') {
+      Router.activate(tab);
+    } else {
+      this.TABS.forEach(t => {
+        const section = document.getElementById(t);
+        if (section) section.style.display = t === tab ? 'block' : 'none';
+      });
+      document.querySelectorAll('.sidebar nav button, .nav-link').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tab);
+        btn.setAttribute('aria-selected', btn.dataset.tab === tab ? 'true' : 'false');
+      });
+    }
+
     const titleEl = document.getElementById('pageTitle');
-    if (titleEl) titleEl.textContent = this.TAB_TITLES[tab] || tab;
+    if (titleEl && this.TAB_TITLES[tab]) titleEl.textContent = this.TAB_TITLES[tab];
 
     const fn = this.TAB_FUNCTIONS[tab];
     if (fn && this[fn]) this[fn]();
@@ -135,141 +145,32 @@ const App = {
     const actionBtn = e.target.closest('[data-action]');
     if (!actionBtn) return;
     const action = actionBtn.dataset.action;
-    // Fallback: si PosController no se cargó (red móvil inestable),
-    // enrutar acciones POS a los métodos legacy de App en vez de ignorarlas.
+
+    if (typeof AppEventRouter !== 'undefined' && AppEventRouter.dispatch(action, { button: actionBtn, event: e })) {
+      return;
+    }
+
     if (typeof PosController === 'undefined' && (action.indexOf('pos-') === 0 || action === 'volver-mesas')) {
       this._handlePosFallback(action, actionBtn);
       return;
     }
-    const actions = {
-      'save-product': () => this.guardarProducto(),
-      'save-movement': () => this.guardarMovimiento(),
-      'filtro-mov-tipo': () => this.filtrarMovTipo(actionBtn.dataset.tipo || ''),
-      'update-product': () => this.actualizarProductoDesdeModal(),
-      'refresh-dashboard': () => this.cargarDashboard(),
-      'refresh-inventario': () => this.cargarInventario(),
-      'refresh-reportes': () => this.cargarReportes(),
-      'view-product': () => this.verDetalleProducto(actionBtn.dataset.codigo),
-      'edit-product': () => this.mostrarFormProducto(actionBtn.dataset.codigo),
-      'delete-product': () => this.eliminarProducto(actionBtn.dataset.codigo, actionBtn.dataset.nombre),
-      'nuevo-pedido': () => this.mostrarFormNuevoPedido(actionBtn.dataset.lugar),
-      'configurar-mesa': () => this.configurarMesa(actionBtn.dataset.mesaid, actionBtn.dataset.mesanombre),
-      'ver-pedido': () => this.verPedido(actionBtn.dataset.pedidoid),
-      'cerrar-modal': () => this.cerrarModal(),
-      'refresh-mesas': () => this.cargarVistaMesas(),
-      'crear-pedido': () => this.crearPedido(),
-      'agregar-item': () => this.mostrarPosOrder(this.state.currentPedidoId || Store.get('pedidos.currentId')),
-      'seleccionar-producto-menu': () => this.seleccionarProductoMenu(actionBtn.dataset.codigo),
-      'guardar-item-menu': () => this.guardarItemMenu(),
-      'eliminar-item': () => this.confirmarEliminarItem(actionBtn.dataset.detalleid),
-      'editar-producto': () => this.mostrarFormModificarItem(actionBtn.dataset.detalleid),
-      'guardar-mod-item': () => this.guardarModItem(actionBtn.dataset.detalleid),
-      'cerrar-pedido': () => this.confirmarCerrarPedido(),
-      'confirmar-cerrar-pedido': () => this.confirmarCerrarPedidoPago(),
-      'cancelar-pedido': () => this.confirmarCancelarPedido(),
-      'editar-pedido': () => this.mostrarFormEditarPedido(),
-      'guardar-edicion-pedido': () => this.guardarEdicionPedido(),
-      // 'volver-mesas' handled by PosController._bindEvents with stopPropagation.
-      'cancelar-item-form': () => this.cerrarModal(),
-      'descargar-factura': () => this.descargarFactura(actionBtn.dataset.pedidoid || Store.get('pedidos.currentId')),
-      'imprimir-ticket': () => this.descargarFactura(actionBtn.dataset.pedidoid || this.state.currentPedidoId || Store.get('pedidos.currentId')),
-      'imprimir-comanda': () => {
-        const pId = actionBtn.dataset.pedidoid || this.state.currentPedidoId || Store.get('pedidos.currentId');
-        if (window.Ticket) Ticket.mostrarModal(pId, { tipo: 'comanda' });
-      },
-      'ver-historial-pedido': () => {
-        const id = actionBtn.dataset.pedidoid;
-        obtenerPedido(id).then(p => { if (!p) { this.showMessage('historialPedidosTable', 'Pedido no encontrado', 'error'); return; } this.mostrarDetallePedidoHistorico(p); })
-          .catch(err => this.showMessage('historialPedidosTable', 'Error: ' + err.message, 'error'));
-      },
-      'mesa-mode-activas': () => this.cambiarModoMesa('activas'),
-      'mesa-mode-historial': () => this.cambiarModoMesa('historial'),
-      'filtrar-historial': () => this.cargarHistorialPedidos(),
-      'eliminar-grupo': () => this.eliminarGrupo(actionBtn.dataset.nombre),
-      'eliminar-unidad': () => this.eliminarUnidad(actionBtn.dataset.nombre),
-      'show-add-grupo': () => this.mostrarFormCrearGrupo(),
-      'show-add-unidad': () => this.mostrarFormCrearUnidad(),
-      'clear-all-records': () => this.clearAllRecords(),
-      'abrir-limpieza': () => this.abrirLimpieza(),
-      'ejecutar-limpieza': () => this.ejecutarLimpieza(),
-      'crear-colaborador': () => this.crearColaborador(),
-      'crear-proveedor': () => this.crearProveedor(),
-      'eliminar-proveedor': () => this.eliminarProveedor(actionBtn.dataset.id),
-      'reactivar-proveedor': () => this.reactivarProveedor(actionBtn.dataset.id),
-      'editar-proveedor': () => this.editarProveedor(actionBtn.dataset.id),
-      'guardar-edicion-proveedor': () => this.guardarEdicionProveedor(actionBtn.dataset.id),
-      'desactivar-usuario': () => this.desactivarUsuario(actionBtn.dataset.userid),
-      'reactivar-usuario': () => this.reactivarUsuario(actionBtn.dataset.userid),
-      'filtrar-auditoria': () => this.filtrarAuditoria(),
-      'export-excel-auditoria': () => this.exportarExcelAuditoria(),
-      // ─── Caja actions — delegated to CajaController ───
-      // 'abrir-caja', 'registrar-mov-caja', 'cerrar-caja-modal', 'confirmar-cierre-caja'
-      // are handled by CajaController._bindCajaEvents to avoid double-execution.
-      // 'propina-general' handled by CajaController._bindCajaEvents.
-      // ─── POS actions — delegated to PosController ───
-      // 'volver-mesas', 'descargar-factura' handled by PosController._bindEvents.
-      'generar-reporte-ventas': () => this.generarReporteVentas(),
-      'generar-reporte-semanal': () => this.generarReporteVentasSemanal(),
-      'export-excel-movimientos': () => this.exportarExcel('movimientos'),
-      'export-excel-ventas': () => this.exportarExcel('ventas'),
-      'export-excel-inventario': () => this.exportarExcel('inventario'),
-      'pagar-item': () => this.pagarItem(actionBtn.dataset.detalleid),
-      'pagar-seleccionados': () => this.pagarSeleccionados(),
-      'activar-split': () => this.activarSplit(),
-      'asignar-cuenta': () => this.asignarCuenta(actionBtn.dataset.detalleid, actionBtn.dataset.cuenta),
-      'cerrar-cuenta': () => this.cerrarCuenta(actionBtn.dataset.cuenta),
-      'seleccionar-items-cuenta': () => this.mostrarModalPagarCuenta(actionBtn.dataset.cuenta),
-      'cerrar-cuenta-general': () => this.cerrarCuenta(null),
-      'abonar-cuenta': () => this.abonarCuentaUI(actionBtn.dataset.cuenta),
-      'abonar-general': () => this.abonarCuentaUI(null),
-      'agregar-cuenta': () => this.agregarCuenta(),
-      'confirmar-modal-prompt': () => {
-        const input = document.getElementById('modalPromptInput');
-        const nombre = input?.value?.trim();
-        if (!nombre) { input?.focus(); input?.select(); return; }
-        if (this._confirmarPromptCallback) this._confirmarPromptCallback(nombre);
-      },
-      'cancelar-modal-prompt': () => this.cerrarModal(),
-      'clear-all': () => {
-        const input = document.getElementById('productSearch');
-        if (input) input.value = '';
-        document.querySelectorAll('#productTableBody tr').forEach(row => row.style.display = '');
-      },
-      'clear-product': () => {
-        ['prodCodigo','prodNombre','prodStockMin','prodPrecio','prodCosto','prodStockInicial'].forEach(id => {
-          const el = document.getElementById(id); if (el) el.value = '';
-        });
-      },
-      'clear-movement': () => {
-        ['movCantidad','movNota'].forEach(id => {
-          const el = document.getElementById(id); if (el) el.value = '';
-        });
-      },
-      // ─── Materia Prima ───
-      'mp-nuevo': () => this.mpMostrarFormNuevo(),
-      'mp-guardar': () => this.mpGuardar(),
-      'mp-editar': () => this.mpMostrarFormEditar(actionBtn.dataset.codigo),
-      'mp-actualizar': () => this.mpActualizar(actionBtn.dataset.codigo),
-      'mp-movimiento': () => this.mpMostrarMovimiento(actionBtn.dataset.codigo, actionBtn.dataset.tipo),
-      'mp-guardar-mov': () => this.mpGuardarMovimiento(actionBtn.dataset.codigo, actionBtn.dataset.tipo),
-      'mp-historial': () => this.mpMostrarHistorial(actionBtn.dataset.codigo),
-      'mp-eliminar': () => this.mpEliminar(actionBtn.dataset.codigo, actionBtn.dataset.nombre),
-      // ─── Recetas ───
-      'receta-nueva': () => this.recetaMostrarFormNueva(),
-      'receta-guardar': () => this.recetaGuardar(),
-      'receta-editar': () => this.recetaMostrarFormEditar(actionBtn.dataset.id, parseFloat(actionBtn.dataset.cantidad), actionBtn.dataset.notas),
-      'receta-actualizar': () => this.recetaActualizar(actionBtn.dataset.id),
-      'receta-eliminar': () => this.recetaEliminar(actionBtn.dataset.id),
-      // ─── Angie ───
-      'angie-registrar': () => this.angieRegistrar(),
-      'angie-eliminar': () => this.angieEliminar(actionBtn.dataset.id),
-      // ─── POS Split-Screen (handled by PosController._bindEvents) ───
-      // pos-add, pos-qty, pos-cat, pos-cobrar, pos-comanda, pos-cancelar,
-      // pos-split, pos-split-assign, pos-cobrar-cuenta, pos-volver-detalle,
-      // pos-toggle-pagos, pos-cancelar-pedido, pos-editar-pedido
-      // are all delegated to PosController to avoid double-execution.
-    };
-    if (actions[action]) actions[action]();
+
+    if (action === 'confirmar-modal-prompt') {
+      const input = document.getElementById('modalPromptInput');
+      const nombre = input?.value?.trim();
+      if (!nombre) { input?.focus(); input?.select(); return; }
+      if (this._confirmarPromptCallback) this._confirmarPromptCallback(nombre);
+      return;
+    }
+
+    if (action === 'cancelar-modal-prompt') {
+      this.cerrarModal();
+      return;
+    }
+
+    if (action === 'cerrar-modal') {
+      this.cerrarModal();
+    }
   },
 
   // Solo se usa cuando PosController no se cargó. Delega a App._pos*
@@ -327,6 +228,46 @@ document.addEventListener('DOMContentLoaded', () => {
   const loginBtn = document.getElementById('loginBtn');
   const loginError = document.getElementById('loginError');
 
+  if (typeof AppEventRouter !== 'undefined') {
+    AppEventRouter.registerMany({
+      'refresh-mesas': () => App.cargarVistaMesas(),
+      'cerrar-modal': () => App.cerrarModal(),
+      'angie-registrar': () => App.angieRegistrar(),
+      'abrir-limpieza': () => App.abrirLimpieza(),
+      'ejecutar-limpieza': () => App.ejecutarLimpieza(),
+      'update-product': () => App.actualizarProductoDesdeModal(),
+      'confirmar-modal-prompt': () => {
+        const input = document.getElementById('modalPromptInput');
+        const nombre = input?.value?.trim();
+        if (!nombre) { input?.focus(); input?.select(); return; }
+        if (App._confirmarPromptCallback) {
+          App._confirmarPromptCallback(nombre);
+          App._confirmarPromptCallback = null;
+        }
+        App.cerrarModal();
+      },
+      'cancelar-modal-prompt': () => {
+        App._confirmarPromptCallback = null;
+        App.cerrarModal();
+      },
+      'clear-all': () => {
+        const input = document.getElementById('productSearch');
+        if (input) input.value = '';
+        document.querySelectorAll('#productTableBody tr').forEach(row => row.style.display = '');
+      },
+      'clear-product': () => {
+        ['prodCodigo','prodNombre','prodStockMin','prodPrecio','prodCosto','prodStockInicial'].forEach(id => {
+          const el = document.getElementById(id); if (el) el.value = '';
+        });
+      },
+      'clear-movement': () => {
+        ['movCantidad','movNota'].forEach(id => {
+          const el = document.getElementById(id); if (el) el.value = '';
+        });
+      }
+    });
+  }
+
   // Check existing session
   if (getToken()) {
     obtenerUsuarioActual().then(user => {
@@ -376,11 +317,108 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+App.bindGlobalEvents = function() {
+  if (this._globalEventListenersBound) return;
+
+  document.addEventListener('click', e => App.handleClick(e));
+  document.addEventListener('keydown', e => App.handleKeydown(e));
+  document.addEventListener('change', e => {
+    if (e.target.matches('[data-action="asignar-cuenta-select"]')) {
+      const detalleId = e.target.dataset.detalleid;
+      const cuenta = e.target.value;
+      if (detalleId && cuenta) PedidosController.asignarCuenta(detalleId, cuenta);
+    }
+  });
+
+  this._globalEventListenersBound = true;
+};
+
+App.bindControllerBridges = function() {
+  if (this._controllerBridgeBound) return;
+
+  const _origVerPedido = App.verPedido;
+  App.verPedido = function(pedidoId) {
+    App.state.currentPedidoId = pedidoId;
+    return PedidosController.verPedido(pedidoId);
+  };
+  App.mostrarMenuProductos = function() { return PedidosController.mostrarMenuProductos(); };
+  App.confirmarCerrarPedido = function() { return PedidosController.confirmarCerrarPedido(); };
+  App.confirmarCerrarPedidoPago = function() { return PedidosController.confirmarCerrarPedidoPago(); };
+  App.confirmarCancelarPedido = function() { return PedidosController.confirmarCancelarPedido(); };
+  App.mostrarFormEditarPedido = function() { return PedidosController.mostrarFormEditarPedido(); };
+  App.guardarEdicionPedido = function() { return PedidosController.guardarEdicionPedido(); };
+  App.activarSplit = function() { return PedidosController.activarSplit(); };
+  App.agregarCuenta = function() { return PedidosController.agregarCuenta(); };
+  App.cerrarCuenta = function(c) { return PedidosController.cerrarCuenta(c); };
+  App.pagarItem = function(id) { return PedidosController.pagarItem(id); };
+  App.pagarSeleccionados = function() { return PedidosController.pagarSeleccionados(); };
+  App.abonarCuentaUI = function(c) { return PedidosController.abonarCuentaUI(c); };
+  App.mostrarModalPagarCuenta = function(c) { return PedidosController.mostrarModalPagarCuenta(c); };
+  App.mostrarModalPropina = function(pid, l, p) { return PedidosController.mostrarModalPropina(pid, l, p); };
+  App.mostrarModalPropinaGeneral = function() { return PedidosController.mostrarModalPropinaGeneral(); };
+  App.cargarCaja = function() { return CajaController.cargarCaja(); };
+
+  const _origMostrarPosOrder = App.mostrarPosOrder;
+  App.mostrarPosOrder = function(pid) {
+    if (typeof PosController !== 'undefined') return PosController.mostrarPosOrder(pid);
+    if (_origMostrarPosOrder) return _origMostrarPosOrder.call(App, pid);
+    throw new Error('Módulo POS no cargado. Recargue la página.');
+  };
+
+  const _origPos = {};
+  ['_posAdd', '_posQty', '_posSetCat', '_posCobrar', '_posCobrarCuenta', '_posCancelar',
+   '_posSplit', '_posSplitAssign', '_posSplitCancel', '_posComanda', '_posCancelarPedido',
+   '_posEditarPedido', '_posRenderTicket', '_posRenderProducts', '_posRenderCats'].forEach(k => {
+    if (typeof App[k] === 'function') _origPos[k] = App[k];
+  });
+
+  const _posBridge = (key, ctrlKey) => function(...args) {
+    if (typeof PosController !== 'undefined' && typeof PosController[ctrlKey] === 'function') {
+      return PosController[ctrlKey](...args);
+    }
+    if (_origPos[key]) return _origPos[key].apply(App, args);
+    throw new Error('Módulo POS no cargado. Recargue la página.');
+  };
+
+  App._posAdd = _posBridge('_posAdd', '_posAdd');
+  App._posQty = _posBridge('_posQty', '_posQty');
+  App._posSetCat = _posBridge('_posSetCat', '_posSetCat');
+  App._posCobrar = _posBridge('_posCobrar', '_posCobrar');
+  App._posCobrarCuenta = _posBridge('_posCobrarCuenta', '_posCobrarCuenta');
+  App._posCancelar = _posBridge('_posCancelar', '_posCancelar');
+  App._posSplit = _posBridge('_posSplit', '_posSplit');
+  App._posSplitAssign = _posBridge('_posSplitAssign', '_posSplitAssign');
+  App._posSplitConfirm = function() { /* legacy no-op */ };
+  App._posSplitCancel = _posBridge('_posSplitCancel', '_posSplitExit');
+  App._posComanda = _posBridge('_posComanda', '_posComanda');
+  App._posCancelarPedido = _posBridge('_posCancelarPedido', '_posCancelarPedido');
+  App._posEditarPedido = _posBridge('_posEditarPedido', '_posEditarPedido');
+  App._posRenderTicket = _posBridge('_posRenderTicket', '_renderTicket');
+
+  Object.defineProperty(App, '_pos', {
+    get() { return Store.get('pos'); },
+    set(v) { Object.assign(Store._state.pos, v); },
+    configurable: true
+  });
+
+  this._controllerBridgeBound = true;
+};
+
 App.init = function() {
+  if (this._initialized) {
+    const savedTab = localStorage.getItem('copito_tab');
+    const initialTab = (savedTab && this.TABS.includes(savedTab)) ? savedTab : 'dashboard';
+    this.showTab(initialTab);
+    return;
+  }
+
+  this._initialized = true;
+
   const loginScreen = document.getElementById('loginScreen');
   const hamburger = document.getElementById('sidebarToggle');
   const overlay = document.getElementById('sidebarOverlay');
   const darkToggle = document.getElementById('darkModeToggle');
+
   if (hamburger) {
     hamburger.addEventListener('click', () => {
       const sidebar = document.querySelector('.sidebar');
@@ -393,7 +431,6 @@ App.init = function() {
     overlay.addEventListener('click', () => App.closeSidebar());
   }
 
-  // Dark mode
   const savedTheme = localStorage.getItem('dpcoffee-theme');
   if (savedTheme === 'dark') {
     document.documentElement.setAttribute('data-theme', 'dark');
@@ -420,7 +457,6 @@ App.init = function() {
     });
   }
 
-  // Role-based UI
   const user = this.state.user;
   if (user) {
     const userSection = document.getElementById('sidebarUser');
@@ -433,95 +469,25 @@ App.init = function() {
       userRoleEl.innerHTML = `${roleIcon} <span>${user.rol === 'admin' ? 'Administrador' : 'Vendedor'}</span>`;
     }
 
-    // Hide admin-only menus for vendedor
     if (user.rol === 'vendedor') {
       document.querySelectorAll('.nav-link[data-tab="configuracion"]').forEach(el => el.closest('.nav-item').style.display = 'none');
     }
   }
 
-  document.querySelectorAll('.sidebar nav button, .nav-link').forEach(btn => {
-    btn.addEventListener('click', () => App.showTab(btn.dataset.tab));
-  });
+  if (typeof Router !== 'undefined') {
+    Router.bindNav('.nav-link', (route) => App.showTab(route));
+  } else {
+    document.querySelectorAll('.sidebar nav button, .nav-link').forEach(btn => {
+      btn.addEventListener('click', () => App.showTab(btn.dataset.tab));
+    });
+  }
 
-  document.addEventListener('click', e => App.handleClick(e));
-  document.addEventListener('keydown', e => App.handleKeydown(e));
-  document.addEventListener('change', e => {
-    if (e.target.matches('[data-action="asignar-cuenta-select"]')) {
-      const detalleId = e.target.dataset.detalleid;
-      const cuenta = e.target.value;
-      if (detalleId && cuenta) PedidosController.asignarCuenta(detalleId, cuenta);
-    }
-  });
+  this.bindGlobalEvents();
+  this.bindControllerBridges();
 
-  // ─── MVC Controllers initialization ─────────────────
   if (typeof PedidosController !== 'undefined') PedidosController.init();
   if (typeof CajaController !== 'undefined') CajaController.init();
   if (typeof PosController !== 'undefined') PosController.init();
-
-  // Delegate key App methods to controllers (migration bridge)
-  const _origVerPedido = App.verPedido;
-  App.verPedido = function(pedidoId) {
-    App.state.currentPedidoId = pedidoId;
-    return PedidosController.verPedido(pedidoId);
-  };
-  App.mostrarMenuProductos = function() { return PedidosController.mostrarMenuProductos(); };
-  App.confirmarCerrarPedido = function() { return PedidosController.confirmarCerrarPedido(); };
-  App.confirmarCerrarPedidoPago = function() { return PedidosController.confirmarCerrarPedidoPago(); };
-  App.confirmarCancelarPedido = function() { return PedidosController.confirmarCancelarPedido(); };
-  App.mostrarFormEditarPedido = function() { return PedidosController.mostrarFormEditarPedido(); };
-  App.guardarEdicionPedido = function() { return PedidosController.guardarEdicionPedido(); };
-  App.activarSplit = function() { return PedidosController.activarSplit(); };
-  App.agregarCuenta = function() { return PedidosController.agregarCuenta(); };
-  App.cerrarCuenta = function(c) { return PedidosController.cerrarCuenta(c); };
-  App.pagarItem = function(id) { return PedidosController.pagarItem(id); };
-  App.pagarSeleccionados = function() { return PedidosController.pagarSeleccionados(); };
-  App.abonarCuentaUI = function(c) { return PedidosController.abonarCuentaUI(c); };
-  App.mostrarModalPagarCuenta = function(c) { return PedidosController.mostrarModalPagarCuenta(c); };
-  App.mostrarModalPropina = function(pid, l, p) { return PedidosController.mostrarModalPropina(pid, l, p); };
-  App.mostrarModalPropinaGeneral = function() { return PedidosController.mostrarModalPropinaGeneral(); };
-  App.cargarCaja = function() { return CajaController.cargarCaja(); };
-  const _origMostrarPosOrder = App.mostrarPosOrder;
-  App.mostrarPosOrder = function(pid) {
-    if (typeof PosController !== 'undefined') return PosController.mostrarPosOrder(pid);
-    if (_origMostrarPosOrder) return _origMostrarPosOrder.call(App, pid);
-    throw new Error('Módulo POS no cargado. Recargue la página.');
-  };
-  // POS internal methods — delegate to PosController, fallback to legacy
-  // pos_order.js methods when the controller script failed to load
-  // (flaky mobile network). Preserves pre-bridge originals first.
-  const _origPos = {};
-  ['_posAdd', '_posQty', '_posSetCat', '_posCobrar', '_posCobrarCuenta', '_posCancelar',
-   '_posSplit', '_posSplitAssign', '_posSplitCancel', '_posComanda', '_posCancelarPedido',
-   '_posEditarPedido', '_posRenderTicket', '_posRenderProducts', '_posRenderCats'].forEach(k => {
-    if (typeof App[k] === 'function') _origPos[k] = App[k];
-  });
-  const _posBridge = (key, ctrlKey) => function(...args) {
-    if (typeof PosController !== 'undefined' && typeof PosController[ctrlKey] === 'function') {
-      return PosController[ctrlKey](...args);
-    }
-    if (_origPos[key]) return _origPos[key].apply(App, args);
-    throw new Error('Módulo POS no cargado. Recargue la página.');
-  };
-  App._posAdd = _posBridge('_posAdd', '_posAdd');
-  App._posQty = _posBridge('_posQty', '_posQty');
-  App._posSetCat = _posBridge('_posSetCat', '_posSetCat');
-  App._posCobrar = _posBridge('_posCobrar', '_posCobrar');
-  App._posCobrarCuenta = _posBridge('_posCobrarCuenta', '_posCobrarCuenta');
-  App._posCancelar = _posBridge('_posCancelar', '_posCancelar');
-  App._posSplit = _posBridge('_posSplit', '_posSplit');
-  App._posSplitAssign = _posBridge('_posSplitAssign', '_posSplitAssign');
-  App._posSplitConfirm = function() { /* legacy no-op */ };
-  App._posSplitCancel = _posBridge('_posSplitCancel', '_posSplitExit');
-  App._posComanda = _posBridge('_posComanda', '_posComanda');
-  App._posCancelarPedido = _posBridge('_posCancelarPedido', '_posCancelarPedido');
-  App._posEditarPedido = _posBridge('_posEditarPedido', '_posEditarPedido');
-  App._posRenderTicket = _posBridge('_posRenderTicket', '_renderTicket');
-  // Bridge old _pos reads to Store
-  Object.defineProperty(App, '_pos', {
-    get() { return Store.get('pos'); },
-    set(v) { Object.assign(Store._state.pos, v); },
-    configurable: true
-  });
 
   window.addEventListener('resize', () => {
     App.state.isMobile = window.innerWidth <= 768;
@@ -529,6 +495,6 @@ App.init = function() {
   });
 
   const savedTab = localStorage.getItem('copito_tab');
-  const initialTab = (savedTab && App.TABS.includes(savedTab)) ? savedTab : 'dashboard';
-  App.showTab(initialTab);
+  const initialTab = (savedTab && this.TABS.includes(savedTab)) ? savedTab : 'dashboard';
+  this.showTab(initialTab);
 };

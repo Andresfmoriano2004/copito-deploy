@@ -404,3 +404,14 @@ Object.assign(App, {
     }
   }
 });
+
+if (typeof AppEventRouter !== 'undefined') {
+  AppEventRouter.registerMany({
+    'generate-report': () => App.generarReporteVentas(),
+    'generar-reporte-ventas': () => App.generarReporteVentas(),
+    'generar-reporte-semanal': () => App.generarReporteVentasSemanal(),
+    'export-excel-movimientos': () => App.exportarExcel('movimientos'),
+    'export-excel-ventas': () => App.exportarExcel('ventas'),
+    'export-excel-inventario': () => App.exportarExcel('inventario')
+  });
+}

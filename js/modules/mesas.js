@@ -255,3 +255,29 @@ Object.assign(App, {
     if (window.Ticket) { Ticket.mostrarModal(pedidoId); } else { descargarPDFPedido(pedidoId); }
   }
 });
+
+if (typeof AppEventRouter !== 'undefined') {
+  AppEventRouter.registerMany({
+    'nuevo-pedido': ({ button }) => App.mostrarFormNuevoPedido(button.dataset.lugar),
+    'configurar-mesa': ({ button }) => App.configurarMesa(button.dataset.mesaid, button.dataset.mesanombre),
+    'ver-pedido': ({ button }) => App.verPedido(button.dataset.pedidoid),
+    'refresh-mesas': () => App.cargarVistaMesas(),
+    'crear-pedido': () => App.crearPedido(),
+    'mesa-mode-activas': () => App.cambiarModoMesa('activas'),
+    'mesa-mode-historial': () => App.cambiarModoMesa('historial'),
+    'filtrar-historial': () => App.cargarHistorialPedidos(),
+    'ver-historial-pedido': ({ button }) => {
+      const id = button.dataset.pedidoid;
+      obtenerPedido(id).then(p => {
+        if (!p) { App.showMessage('historialPedidosTable', 'Pedido no encontrado', 'error'); return; }
+        App.mostrarDetallePedidoHistorico(p);
+      }).catch(err => App.showMessage('historialPedidosTable', 'Error: ' + err.message, 'error'));
+    },
+    'descargar-factura': ({ button }) => App.descargarFactura(button.dataset.pedidoid || Store.get('pedidos.currentId')),
+    'imprimir-ticket': ({ button }) => App.descargarFactura(button.dataset.pedidoid || App.state.currentPedidoId || Store.get('pedidos.currentId')),
+    'imprimir-comanda': ({ button }) => {
+      const pId = button.dataset.pedidoid || App.state.currentPedidoId || Store.get('pedidos.currentId');
+      if (window.Ticket) Ticket.mostrarModal(pId, { tipo: 'comanda' });
+    }
+  });
+}

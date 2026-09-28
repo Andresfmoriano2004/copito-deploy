@@ -329,3 +329,19 @@ Object.assign(App, {
       .catch(err => { this.showMessage('mesaMsg', 'Error: ' + err.message, 'error'); });
   }
 });
+
+if (typeof AppEventRouter !== 'undefined') {
+  AppEventRouter.registerMany({
+    'agregar-item': () => App.mostrarPosOrder(App.state.currentPedidoId || Store.get('pedidos.currentId')),
+    'seleccionar-producto-menu': ({ button }) => App.seleccionarProductoMenu(button.dataset.codigo),
+    'guardar-item-menu': () => App.guardarItemMenu(),
+    'eliminar-item': ({ button }) => App.confirmarEliminarItem(button.dataset.detalleid),
+    'editar-producto': ({ button }) => App.mostrarFormModificarItem(button.dataset.detalleid),
+    'guardar-mod-item': ({ button }) => App.guardarModItem(button.dataset.detalleid),
+    'cerrar-pedido': () => App.confirmarCerrarPedido(),
+    'confirmar-cerrar-pedido': () => App.confirmarCerrarPedidoPago(),
+    'cancelar-pedido': () => App.confirmarCancelarPedido(),
+    'editar-pedido': () => App.mostrarFormEditarPedido(),
+    'guardar-edicion-pedido': () => App.guardarEdicionPedido()
+  });
+}

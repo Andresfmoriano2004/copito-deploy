@@ -3,8 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#1E293B">
-  <title>Copito - Control de Inventario</title>
+  <meta name="theme-color" content="#1C1917">
+  <title>Copito — Dark Pink Coffee</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="apple-touch-icon" href="icons/icon.svg">
@@ -14,8 +17,11 @@
   
   <div id="loginScreen">
     <div class="login-box">
-      <h2>☕ Copito</h2>
-      <p>Inicia sesión para continuar</p>
+      <div class="login-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M5 9h12v8a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V9Z"/><path d="M17 9h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2"/><path d="M7 3v3M12 3v3M17 3v3"/></svg>
+      </div>
+      <h2>Copito</h2>
+      <p>Dark Pink Coffee · punto de venta</p>
       <div class="form-group">
         <label for="loginUsername">Usuario</label>
         <input id="loginUsername" type="text" placeholder="Tu usuario" autocomplete="username" autofocus>
@@ -24,7 +30,7 @@
         <label for="loginPassword">Contraseña</label>
         <input id="loginPassword" type="password" placeholder="Tu contraseña" autocomplete="current-password">
       </div>
-      <button class="btn btn-success" id="loginBtn" type="button">Iniciar Sesión</button>
+      <button class="btn btn-primary" id="loginBtn" type="button">Iniciar sesión</button>
       <div class="login-error" id="loginError"></div>
     </div>
   </div>
@@ -562,8 +568,10 @@
   <script src="js/core/api-usuarios.js"></script>
   <script src="js/core/api-reportes.js"></script>
   <script src="js/ticket.js"></script>
-  <script src="js/app.js"></script>
   <script src="js/core/store.js"></script>
+  <script src="js/core/router.js"></script>
+  <script src="js/core/event-router.js"></script>
+  <script src="js/app.js"></script>
   <script src="js/views/pedidos_view.js"></script>
   <script src="js/views/caja_view.js"></script>
   <script src="js/views/pos_view.js"></script>

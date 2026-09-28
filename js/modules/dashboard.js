@@ -51,3 +51,11 @@ Object.assign(App, {
           </div></div></div>`;
   }
 });
+
+if (typeof AppEventRouter !== 'undefined') {
+  AppEventRouter.registerMany({
+    'refresh-dashboard': () => App.cargarDashboard(),
+    'refresh-inventario': () => App.cargarInventario(),
+    'refresh-reportes': () => App.cargarReportes()
+  });
+}

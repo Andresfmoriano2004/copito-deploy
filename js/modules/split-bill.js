@@ -279,3 +279,18 @@ Object.assign(App, {
 
   mostrarModalPropinaGeneral() { this.mostrarModalPropina(null, null, 0); }
 });
+
+if (typeof AppEventRouter !== 'undefined') {
+  AppEventRouter.registerMany({
+    'activar-split': () => App.activarSplit(),
+    'agregar-cuenta': () => App.agregarCuenta(),
+    'asignar-cuenta': ({ button }) => App.asignarCuenta(button.dataset.detalleid, button.dataset.cuenta),
+    'cerrar-cuenta': ({ button }) => App.cerrarCuenta(button.dataset.cuenta),
+    'seleccionar-items-cuenta': ({ button }) => App.mostrarModalPagarCuenta(button.dataset.cuenta),
+    'cerrar-cuenta-general': () => App.cerrarCuenta(null),
+    'abonar-cuenta': ({ button }) => App.abonarCuentaUI(button.dataset.cuenta),
+    'abonar-general': () => App.abonarCuentaUI(null),
+    'pagar-item': ({ button }) => App.pagarItem(button.dataset.detalleid),
+    'pagar-seleccionados': () => App.pagarSeleccionados()
+  });
+}

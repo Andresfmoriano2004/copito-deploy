@@ -4,6 +4,27 @@ Object.assign(App, {
   recetasMP: [],
   recetasProductos: [],
 
+  getRecetasAgrupadas() {
+    const grouped = {};
+    this.recetasData.forEach(receta => {
+      if (!grouped[receta.codigoProducto]) {
+        grouped[receta.codigoProducto] = {
+          nombre: receta.productoNombre,
+          items: []
+        };
+      }
+      grouped[receta.codigoProducto].items.push(receta);
+    });
+    return grouped;
+  },
+
+  getRecetaStats(items) {
+    const productosConReceta = new Set(items.map(item => item.codigoProducto)).size;
+    const ingredientesUsados = new Set(items.map(item => item.codigoMateriaPrima)).size;
+    const totalLineas = items.length;
+    return { productosConReceta, ingredientesUsados, totalLineas };
+  },
+
   async cargarRecetas() {
     const el = document.getElementById('recetasContent');
     if (!el) return;
@@ -26,24 +47,36 @@ Object.assign(App, {
   _renderRecetas() {
     const el = document.getElementById('recetasContent');
     if (!el) return;
-    const items = this.recetasData;
+
+    const grouped = this.getRecetasAgrupadas();
+    const stats = this.getRecetaStats(this.recetasData);
+
     let html = `
       <div class="card">
         <div class="card-header">Recetas (Producto → Materia Prima)</div>
         <div class="card-body">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-value">${stats.productosConReceta}</div>
+              <div class="stat-label">Productos con receta</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">${stats.ingredientesUsados}</div>
+              <div class="stat-label">Ingredientes usados</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">${stats.totalLineas}</div>
+              <div class="stat-label">Líneas de receta</div>
+            </div>
+          </div>
+
           <div class="actions" style="margin-bottom:15px;">
             <button class="btn btn-success" data-action="receta-nueva" type="button">+ Nueva Receta</button>
           </div>`;
 
-    if (!items.length) {
+    if (!this.recetasData.length) {
       html += `<p class="empty-state">No hay recetas creadas. Las recetas definen cuánta materia prima se consume por producto.</p>`;
     } else {
-      const grouped = {};
-      items.forEach(r => {
-        if (!grouped[r.codigoProducto]) grouped[r.codigoProducto] = { nombre: r.productoNombre, items: [] };
-        grouped[r.codigoProducto].items.push(r);
-      });
-
       html += `<div class="table-container"><table class="data-table">
         <thead><tr><th>Producto</th><th>Materia Prima</th><th>Cantidad</th><th>Notas</th><th>Acciones</th></tr></thead>
         <tbody>`;
@@ -51,12 +84,12 @@ Object.assign(App, {
       Object.entries(grouped).forEach(([codigo, grupo]) => {
         grupo.items.forEach((r, i) => {
           html += `<tr>
-            ${i === 0 ? `<td rowspan="${grupo.items.length}" style="font-weight:600;">${grupo.nombre}</td>` : ''}
-            <td>${r.materiaPrimaNombre} (${r.materiaPrimaUnidad})</td>
-            <td><strong>${r.cantidad}</strong></td>
-            <td>${r.notas || '-'}</td>
+            ${i === 0 ? `<td rowspan="${grupo.items.length}" style="font-weight:600;">${this.escapeHtml(grupo.nombre)}</td>` : ''}
+            <td>${this.escapeHtml(r.materiaPrimaNombre)} (${this.escapeHtml(r.materiaPrimaUnidad)})</td>
+            <td><strong>${Number(r.cantidad || 0)}</strong></td>
+            <td>${this.escapeHtml(r.notas || '-')}</td>
             <td>
-              <button class="btn btn-sm btn-secondary" data-action="receta-editar" data-id="${r.id}" data-cantidad="${r.cantidad}" data-notas="${r.notas || ''}" type="button">Editar</button>
+              <button class="btn btn-sm btn-secondary" data-action="receta-editar" data-id="${r.id}" data-cantidad="${r.cantidad}" data-notas="${this.escapeHtml(r.notas || '')}" type="button">Editar</button>
               <button class="btn btn-sm btn-danger" data-action="receta-eliminar" data-id="${r.id}" type="button">Eliminar</button>
             </td>
           </tr>`;
@@ -71,8 +104,8 @@ Object.assign(App, {
   },
 
   recetaMostrarFormNueva() {
-    const prodsOpts = this.recetasProductos.map(p => `<option value="${p.codigo}">${p.nombre} (${p.codigo})</option>`).join('');
-    const mpOpts = this.recetasMP.map(m => `<option value="${m.codigo}">${m.nombre} (${m.unidad})</option>`).join('');
+    const prodsOpts = this.recetasProductos.map(p => `<option value="${this.escapeHtml(p.codigo)}">${this.escapeHtml(p.nombre)} (${this.escapeHtml(p.codigo)})</option>`).join('');
+    const mpOpts = this.recetasMP.map(m => `<option value="${this.escapeHtml(m.codigo)}">${this.escapeHtml(m.nombre)} (${this.escapeHtml(m.unidad)})</option>`).join('');
     this.mostrarModal(`
       <h3 style="margin-bottom:15px;">Nueva Receta</h3>
       <div class="form-group">
@@ -126,7 +159,7 @@ Object.assign(App, {
       </div>
       <div class="form-group">
         <label>Notas</label>
-        <input id="recetaEditNotas" type="text" value="${notas}" maxlength="500">
+        <input id="recetaEditNotas" type="text" value="${this.escapeHtml(notas || '')}" maxlength="500">
       </div>
       <div class="actions">
         <button class="btn btn-success" data-action="receta-actualizar" data-id="${id}" type="button">Actualizar</button>
@@ -162,3 +195,13 @@ Object.assign(App, {
     }
   }
 });
+
+if (typeof AppEventRouter !== 'undefined') {
+  AppEventRouter.registerMany({
+    'receta-nueva': () => App.recetaMostrarFormNueva(),
+    'receta-guardar': () => App.recetaGuardar(),
+    'receta-editar': ({ button }) => App.recetaMostrarFormEditar(button.dataset.id, parseFloat(button.dataset.cantidad), button.dataset.notas),
+    'receta-actualizar': ({ button }) => App.recetaActualizar(button.dataset.id),
+    'receta-eliminar': ({ button }) => App.recetaEliminar(button.dataset.id)
+  });
+}

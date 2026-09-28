@@ -36,8 +36,22 @@ Object.assign(App, {
     return this.fromCents(this.toCents(val));
   },
 
-  fmt(n) {
-    return this.CURRENCY.symbol + Math.round(Number(n || 0)).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  normalizeNumber(value, fallback = 0) {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : fallback;
+  },
+
+  fmt(n, options = {}) {
+    const { minimumFractionDigits = 0, maximumFractionDigits = 0, locale = 'es-CO' } = options;
+    const value = this.normalizeNumber(n, 0);
+    return `${this.CURRENCY.symbol}${value.toLocaleString(locale, {
+      minimumFractionDigits,
+      maximumFractionDigits
+    })}`;
+  },
+
+  fmtMoney(value, options = {}) {
+    return this.fmt(value, { minimumFractionDigits: 0, maximumFractionDigits: 0, ...options });
   },
 
 // ─── Fechas centralizadas (America/Bogota) ─────────────────────────────

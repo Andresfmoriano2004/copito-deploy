@@ -50,3 +50,9 @@ Object.assign(App, {
     });
   }
 });
+
+if (typeof AppEventRouter !== 'undefined') {
+  AppEventRouter.registerMany({
+    'buscar-global': () => App.cargarBuscar()
+  });
+}

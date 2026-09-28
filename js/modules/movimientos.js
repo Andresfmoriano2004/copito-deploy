@@ -120,3 +120,10 @@ Object.assign(App, {
       .catch(err => { this.showMessage('movMsg', 'Error: ' + err.message, 'error'); });
   }
 });
+
+if (typeof AppEventRouter !== 'undefined') {
+  AppEventRouter.registerMany({
+    'save-movement': () => App.guardarMovimiento(),
+    'filtro-mov-tipo': ({ button }) => App.filtrarMovTipo(button.dataset.tipo || '')
+  });
+}

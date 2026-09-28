@@ -179,3 +179,10 @@ Object.assign(App, {
     }
   }
 });
+
+if (typeof AppEventRouter !== 'undefined') {
+  AppEventRouter.registerMany({
+    'angie-registrar': () => App.angieRegistrar(),
+    'angie-eliminar': ({ button }) => App.angieEliminar(button.dataset.id)
+  });
+}
