@@ -36,6 +36,13 @@ if ($method === 'POST' && $path === 'auth/login') {
         $pdo->prepare("UPDATE login_intentos SET intentos = 0, bloqueado_hasta = NULL WHERE ip = ?")->execute([$ip]);
         $rateInfo['intentos'] = 0;
       }
+    } elseif ($rateInfo && empty($rateInfo['bloqueado_hasta'])) {
+      // Ventana deslizante: fallos de hace más de 15 min no acumulan
+      $ultimoTs = strtotime($rateInfo['ultimo_intento'] ?? 'now');
+      if ($ultimoTs < time() - 15 * 60) {
+        $pdo->prepare("UPDATE login_intentos SET intentos = 0 WHERE ip = ?")->execute([$ip]);
+        $rateInfo['intentos'] = 0;
+      }
     }
   } catch (Exception $e) {
     error_log('Error en rate limiting de login: ' . $e->getMessage());

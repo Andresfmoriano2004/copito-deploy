@@ -20,8 +20,9 @@
       <div class="login-mark" aria-hidden="true">
         <svg viewBox="0 0 24 24"><path d="M5 9h12v8a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V9Z"/><path d="M17 9h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2"/><path d="M7 3v3M12 3v3M17 3v3"/></svg>
       </div>
+      <div class="login-overline">Dark Pink Coffee</div>
       <h2>Copito</h2>
-      <p>Dark Pink Coffee · punto de venta</p>
+      <p>Pastelería artesanal · punto de venta</p>
       <div class="form-group">
         <label for="loginUsername">Usuario</label>
         <input id="loginUsername" type="text" placeholder="Tu usuario" autocomplete="username" autofocus>
@@ -41,10 +42,10 @@
   <div class="app-container">
     <nav class="sidebar" id="sidebar" aria-label="Navegación principal">
       <div class="sidebar-header" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-        <h1 style="font-size:1rem;">Copito</h1>
+        <div><h1>Copito</h1><div class="brand-sub">Dark Pink Coffee</div></div>
         <div style="display:flex;align-items:center;gap:6px;">
           <span id="connectionBadge" class="connection-badge online" title="Estado de conexión">🟢 En línea</span>
-          <button id="darkModeToggle" style="background:rgba(255,255,255,0.15);border:none;border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;transition:background var(--transition);" title="Cambiar tema" type="button">🌙</button>
+          <button id="darkModeToggle" style="background:rgba(255,255,255,0.15);border:none;border-radius:50%;width:36px;height:36px;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;transition:background var(--transition);" title="Cambiar tema" type="button" aria-label="Cambiar entre modo claro y oscuro"><svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z"></path></svg></button>
         </div>
       </div>
       <ul class="nav-menu" role="tablist">
@@ -591,7 +592,6 @@
   <script src="js/modules/mesas.js"></script>
   <script src="js/modules/pedidos.js"></script>
   <script src="js/modules/split-bill.js"></script>
-  <script src="js/modules/caja.js"></script>
   <script src="js/modules/config.js"></script>
   <script src="js/modules/materia_prima.js"></script>
   <script src="js/modules/recetas.js"></script>

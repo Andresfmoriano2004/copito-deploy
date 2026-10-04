@@ -207,8 +207,8 @@ Object.assign(App, {
   },
 
 
-  // Product module actions are registered in AppEventRouter to avoid
-  // keeping all UI actions in the global App.handleClick switch.
+  // Product module actions are registered in AppEventRouter (bottom of file)
+  // to avoid keeping all UI actions in the global App.handleClick switch.
   mostrarFormProducto(codigo) {
     this.cerrarModal();
     const modal = document.createElement('div');
@@ -302,3 +302,12 @@ Object.assign(App, {
     }).catch(err => { this.showMessage(container, 'Error: ' + err.message, 'error'); });
   }
 });
+
+if (typeof AppEventRouter !== 'undefined') {
+  AppEventRouter.registerMany({
+    'save-product': () => App.guardarProducto(),
+    'view-product': ({ button }) => App.verDetalleProducto(button.dataset.codigo),
+    'edit-product': ({ button }) => App.mostrarFormProducto(button.dataset.codigo),
+    'delete-product': ({ button }) => App.eliminarProducto(button.dataset.codigo, button.dataset.nombre)
+  });
+}

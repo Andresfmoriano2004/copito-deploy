@@ -1,6 +1,9 @@
 // ─── Split-Screen POS Order Component ──────────────────
 // 2-column layout: Products (left) + Active Ticket (right)
 // No modals — direct add-to-cart with +/- quantity controls.
+// NOTA: respaldo offline de PosController — NO ELIMINAR (ver _posBridge y
+// _handlePosFallback en js/app.js). El flujo principal vive en
+// js/controllers/pos_controller.js + js/views/pos_view.js.
 Object.assign(App, {
 
   // ═══ STATE ═══════════════════════════════════════════

@@ -231,14 +231,7 @@ Object.assign(App, {
     }).catch(err => { this.showMessage('mesaMsg', 'Error: ' + err.message, 'error'); });
   },
 
-  verPedido(pedidoId) {
-    this.state.currentPedidoId = pedidoId;
-    const mesaView = document.getElementById('mesaView');
-    const detail = document.getElementById('pedidoDetail');
-    if (mesaView) mesaView.style.display = 'none';
-    if (detail) detail.style.display = 'block';
-    this.mostrarPosOrder(pedidoId);
-  },
+  // NOTA: verPedido vive en js/controllers/pedidos_controller.js (puente en js/app.js).
 
   _openPdf(res) {
     if (!res.pdf) return;

@@ -4,6 +4,11 @@ const CajaController = {
 
   init() {
     Store.subscribe('caja', () => this.render());
+    // El botón Confirmar Cierre vive en un modal (fuera de #caja): se registra
+    // a nivel documento. No hay doble ejecución porque nunca está dentro del contenedor.
+    if (typeof AppEventRouter !== 'undefined') {
+      AppEventRouter.register('confirmar-cierre-caja', () => this.confirmarCierreCaja());
+    }
   },
 
   async cargarCaja() {

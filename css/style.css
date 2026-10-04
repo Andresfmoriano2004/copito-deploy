@@ -51,8 +51,9 @@
       --transition-fast: 0.15s ease;
       --transition: 0.2s ease;
       --transition-slow: 0.3s ease;
-      /* ═══ TIPOGRAFÍA ═══ */
-      --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    /* ═══ TIPOGRAFÍA ═══ */
+    --font: Georgia, 'Palatino Linotype', 'Book Antiqua', 'Times New Roman', serif;
+    --font-display: Georgia, 'Palatino Linotype', 'Book Antiqua', 'Times New Roman', serif;
       --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
       --text-xs: 0.75rem;
       --text-sm: 0.8125rem;
@@ -226,16 +227,26 @@
 
     .sidebar-header {
       padding: 18px 16px 16px;
-      background: linear-gradient(135deg, rgba(236, 72, 153, 0.30), rgba(31, 41, 55, 0.10));
+      background: rgba(0, 0, 0, 0.25);
       border-bottom: 1px solid rgba(255,255,255,0.08);
     }
     .sidebar-header .sidebar-toggle { background: none; border: none; color: white; cursor: pointer; font-size: 1.2rem; padding: 4px 8px; border-radius: 10px; }
 
     .sidebar-header h1 {
-      font-size: 1.2rem;
+      font-family: var(--font-display);
+      font-size: 1.35rem;
       font-weight: 700;
-      text-align: center;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.01em;
+      line-height: 1.1;
+      margin: 0;
+    }
+    .sidebar-header .brand-sub {
+      font-size: 0.62rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.22em;
+      color: var(--primary-light);
+      margin-top: 2px;
     }
 
     .connection-badge {
@@ -323,7 +334,8 @@
     .nav-icon svg,
     .btn-icon svg,
     .logout-btn svg,
-    .app-icon svg {
+    .app-icon svg,
+    #darkModeToggle svg {
       width: 18px;
       height: 18px;
       display: block;
@@ -365,10 +377,11 @@
     }
 
     .content-header h2 {
-      color: var(--primary);
-      font-size: 1.5rem;
+      color: var(--text);
+      font-family: var(--font-display);
+      font-size: 1.65rem;
       font-weight: 700;
-      letter-spacing: -0.02em;
+      letter-spacing: -0.01em;
     }
 
     .content-body {
@@ -406,13 +419,13 @@
     }
 
     .card-header {
-      padding: 18px 20px;
-      background: linear-gradient(135deg, rgba(236,72,153,0.05), rgba(255,255,255,0.65));
+      padding: 16px 20px;
+      background: var(--surface);
       border-bottom: 1px solid var(--border);
-      border-radius: 18px 18px 0 0;
+      border-left: 4px solid var(--primary);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
       font-weight: 700;
-      color: var(--primary);
-      letter-spacing: 0.01em;
+      color: var(--text);
     }
 
     .card-body {
@@ -472,15 +485,14 @@
     input, select, textarea {
       box-sizing: border-box;
       width: 100%;
-      padding: 12px 14px;
+      padding: 12px;
       border: 1px solid var(--border);
-      border-radius: 12px;
+      border-radius: var(--radius);
       font-size: 0.9rem;
       font-family: var(--font);
-      transition: border-color var(--transition), box-shadow var(--transition), background var(--transition), transform var(--transition);
-      background: rgba(255,255,255,0.88);
+      transition: border-color var(--transition), box-shadow var(--transition);
+      background: var(--white);
       color: var(--text);
-      box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.02);
     }
 
     input:focus, select:focus, textarea:focus {
@@ -575,10 +587,10 @@
       filter: none !important;
     }
 
-    .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #fff; box-shadow: 0 10px 20px rgba(236,72,153,0.18); }
-    .btn-primary:hover { background: linear-gradient(135deg, var(--primary-hover), var(--primary-dark)); box-shadow: 0 12px 22px rgba(236,72,153,0.22); }
+    .btn-primary { background: var(--primary); color: #fff; box-shadow: var(--shadow-primary); }
+    .btn-primary:hover { background: var(--primary-hover); box-shadow: var(--shadow-primary); }
     .btn-primary:active { background: var(--primary-dark); }
-    .btn-success { background: linear-gradient(135deg, var(--success), #15803d); color: #fff; }
+    .btn-success { background: var(--success); color: #fff; }
     .btn-success:hover { filter: brightness(1.07); }
     .btn-success:active { filter: brightness(0.94); }
     .btn-danger { background: var(--danger); color: #fff; }
@@ -597,8 +609,8 @@
     .table-container {
       overflow-x: auto;
       border-radius: var(--radius);
-      box-shadow: var(--shadow-md);
-      border: 1px solid var(--primary-border);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
     }
 
     table {
@@ -610,14 +622,16 @@
     th, td {
       padding: 12px 15px;
       text-align: left;
-      border-bottom: 1px solid var(--primary-border);
+      border-bottom: 1px solid var(--border-light);
     }
 
     th {
-      background: var(--primary-bg-light);
-      font-weight: 600;
-      color: var(--primary);
-      font-size: 0.9rem;
+      background: var(--bg);
+      font-weight: 700;
+      color: var(--text-secondary);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
       white-space: nowrap;
     }
 
@@ -715,11 +729,12 @@
       stroke-linecap: round;
       stroke-linejoin: round;
     }
-    .login-box h2 { color:var(--primary);margin-bottom:8px;font-size:1.6rem;font-weight:800;letter-spacing:-0.03em; }
+    .login-box h2 { color:var(--text);margin-bottom:8px;font-size:2.1rem;font-weight:700;letter-spacing:-0.01em;font-family:var(--font-display); }
+    .login-overline { font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.28em;color:var(--primary);margin-bottom:6px; }
     .login-box p { color:var(--text-muted);margin-bottom:25px;font-size:0.9rem; }
     .login-box .form-group { text-align:left;margin-bottom:15px; }
-    .login-box .form-group label { font-weight:700;color:var(--primary);font-size:0.85rem;margin-bottom:6px;display:block; }
-    .login-box input { width:100%;padding:12px 14px;font-size:1rem;border:1.5px solid var(--primary-border);border-radius:12px; }
+    .login-box .form-group label { font-weight:700;color:var(--text-secondary);font-size:0.78rem;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;display:block; }
+    .login-box input { width:100%;padding:12px 14px;font-size:1rem;border:1.5px solid var(--border);border-radius:12px; }
     .login-box input:focus { border-color:var(--primary-light);box-shadow:0 0 0 4px rgba(233, 30, 120, 0.12);outline:none; }
     .login-box .btn { width:100%;padding:14px;font-size:1rem;margin-top:10px;border-radius:14px; }
     .login-error { color:var(--danger);font-weight:600;font-size:0.85rem;margin-top:8px;min-height:20px; }
@@ -924,11 +939,14 @@
     }
 
     .zona-titulo {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--primary);
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-secondary);
       margin-bottom: 10px;
       padding-left: 5px;
+      border-left: 3px solid var(--primary);
     }
 
       .lugares-grid {
@@ -1320,7 +1338,6 @@
     }
 
     .items-list { border: 1px solid var(--primary-border); border-radius: var(--radius); overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
-    .items-list .item-row { min-width: 560px; }
     .item-row { display: grid; grid-template-columns: 2fr 60px 100px 100px 80px; gap: 5px; padding: 10px 12px; align-items: center; border-bottom: 1px solid var(--primary-border); }
     .item-row:last-child { border-bottom: none; }
     .item-row:nth-child(even) { background: var(--primary-bg-light); }
@@ -1705,11 +1722,11 @@
 
     /* ─── Botones ─── */
     .btn:hover {
-      transform: translateY(-1px);
+      transform: none;
       box-shadow: var(--shadow-md);
     }
     .btn:active {
-      transform: translateY(0);
+      transform: none;
     }
 
     /* ─── Tarjetas ─── */
@@ -2003,7 +2020,7 @@
       .tabla-responsive thead { display: none; }
       .tabla-responsive, .tabla-responsive tbody, .tabla-responsive tr, .tabla-responsive td { display: block; width: 100%; }
       .tabla-responsive tr {
-        border: 1px solid var(--primary-border);
+        border: 1px solid var(--border);
         border-radius: var(--radius);
         margin-bottom: 10px;
         padding: 6px 12px;
@@ -2011,7 +2028,7 @@
       }
       .tabla-responsive td {
         border: none;
-        border-bottom: 1px dashed var(--primary-border);
+        border-bottom: 1px dashed var(--border);
         padding: 7px 0 7px 42%;
         position: relative;
         text-align: right;
@@ -2021,7 +2038,7 @@
         content: attr(data-label);
         position: absolute; left: 0; top: 7px;
         font-weight: 700; font-size: 0.75rem;
-        color: var(--primary); text-transform: uppercase;
+        color: var(--text-secondary); text-transform: uppercase;
         text-align: left; max-width: 40%;
       }
       .tabla-responsive td[style*="text-align:right"] { text-align: right; }
@@ -2134,8 +2151,32 @@
     @media (max-width: 768px) {
       #caja .content-body { gap: 12px; }
       #caja .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      /* Saldo disponible como héroe a todo ancho */
+      #caja .kpi-grid .stat-card:nth-child(4) {
+        grid-column: 1 / -1;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 0;
+        padding: 14px 16px;
+      }
+      #caja .kpi-grid .stat-card:nth-child(4) .stat-value { font-size: 1.5rem; }
       #caja .caja-estado-card .card-body { padding: 16px; }
       #caja .caja-estado-row > .badge { margin-left: 24px; }
+      /* Cerrar Caja siempre visible al pie en móvil */
+      #caja .content-body { padding-bottom: 86px; }
+      #caja .caja-close-actions {
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        z-index: 150;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        border-radius: 0;
+        padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+        margin-top: 0;
+        justify-content: stretch;
+      }
+      #caja .caja-close-actions .btn-danger { flex: 1; padding: 14px; }
     }
     @media (max-width: 480px) {
       #caja .kpi-grid { gap: 8px; }
@@ -2876,4 +2917,79 @@
       .pos-ticket-meta { padding: 6px 12px; gap: 6px; font-size: 0.75rem; }
       .pos-ticket-body { padding: 8px 12px; }
       .pos-btn-row { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       MEJORAS DE ACCESIBILIDAD Y RESPONSIVE (tablet/móvil/desktop)
+       Añadido al final para tener prioridad de cascada sin tocar
+       ni un solo selector existente arriba. Todo es aditivo y
+       reversible: se puede borrar este bloque completo sin efecto
+       sobre el resto de la hoja de estilos.
+       ═══════════════════════════════════════════════════════════ */
+
+    /* Respeta "reducir movimiento" del sistema operativo.
+       Afecta: fadeIn, pulse-border, glow-total, pulse-abierto,
+       cajaPulse, modalSlideUp, spin, y todos los hover con transform. */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+      }
+    }
+
+    /* Altura real de viewport en móviles (evita saltos al aparecer/
+       ocultarse la barra de direcciones del navegador). Requiere que
+       el <meta name="viewport"> tenga viewport-fit=cover para el
+       aprovechamiento completo en iPhones con notch. */
+    body, #loginScreen {
+      height: 100vh;
+      height: 100dvh;
+    }
+
+    /* Zonas seguras en dispositivos con notch / barra inferior gestual */
+    .sidebar-toggle {
+      top: calc(12px + env(safe-area-inset-top, 0px));
+      left: calc(12px + env(safe-area-inset-left, 0px));
+    }
+    .ticket-modal {
+      padding-top: calc(16px + env(safe-area-inset-top, 0px));
+      padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    }
+
+    /* Foco visible en "tarjetas" clicables que probablemente son <div>
+       con onclick en vez de <button>: sin esto, la navegación por
+       teclado no muestra dónde está el foco en mesas, menú y POS. */
+    .lugar-card:focus-visible,
+    .menu-item:focus-visible,
+    .pos-card:focus-visible,
+    .pos-cat:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    /* Objetivos táctiles mínimos (~40-44px) en pantallas táctiles,
+       independientemente del ancho: un tablet en modo escritorio con
+       "pointer: coarse" también debe recibir el tamaño táctil. */
+    @media (max-width: 768px), (pointer: coarse) {
+      .pos-ti-del { width: 40px; height: 40px; }
+      .pos-split-assign { width: 40px; height: 40px; }
+      .btn-icon { min-width: 40px; min-height: 40px; }
+    }
+
+    /* .mesa-map no tenía breakpoints propios (a diferencia de
+       .lugares-grid): en tablet/móvil las 4 columnas fijas se
+       desbordaban o quedaban demasiado angostas. */
+    @media (max-width: 900px) {
+      .mesa-map { grid-template-columns: repeat(3, minmax(100px, 1fr)); gap: 10px; }
+    }
+    @media (max-width: 600px) {
+      .mesa-map { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    }
+
+    /* Paso intermedio para tablets en el panel de Caja: antes saltaba
+       de 5 columnas (desktop) a 3 (≤1050px) a 2 (≤768px) sin un punto
+       cómodo para tablets pequeñas en vertical (~700-820px). */
+    @media (max-width: 850px) and (min-width: 481px) {
+      #caja .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }

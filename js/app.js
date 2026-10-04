@@ -187,6 +187,7 @@ const App = {
         case 'pos-split': return this._posSplit();
         case 'pos-split-exit':
         case 'pos-split-cancel': return this._posSplitCancel();
+        case 'pos-split-confirm': return this._posSplitConfirm();
         case 'pos-split-assign': return this._posSplitAssign(parseInt(btn.dataset.idx), btn.dataset.cuenta);
         case 'pos-comanda': return this._posComanda();
         case 'pos-cancelar-pedido': return this._posCancelarPedido();
@@ -198,6 +199,10 @@ const App = {
           }
           if (pid) return this.verPedido(pid);
           return this.cargarVistaMesas();
+        }
+        case 'pos-guardar-edicion': {
+          if (typeof this._posGuardarEdicion === 'function') return this._posGuardarEdicion();
+          return;
         }
         case 'volver-mesas': {
           try { if (typeof this._posSyncCart === 'function') await this._posSyncCart(); } catch (err) {
@@ -232,6 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
     AppEventRouter.registerMany({
       'refresh-mesas': () => App.cargarVistaMesas(),
       'cerrar-modal': () => App.cerrarModal(),
+      'cancelar-item-form': () => App.cerrarModal(),
       'angie-registrar': () => App.angieRegistrar(),
       'abrir-limpieza': () => App.abrirLimpieza(),
       'ejecutar-limpieza': () => App.ejecutarLimpieza(),
@@ -367,8 +373,9 @@ App.bindControllerBridges = function() {
 
   const _origPos = {};
   ['_posAdd', '_posQty', '_posSetCat', '_posCobrar', '_posCobrarCuenta', '_posCancelar',
-   '_posSplit', '_posSplitAssign', '_posSplitCancel', '_posComanda', '_posCancelarPedido',
-   '_posEditarPedido', '_posRenderTicket', '_posRenderProducts', '_posRenderCats'].forEach(k => {
+   '_posSplit', '_posSplitAssign', '_posSplitCancel', '_posSplitConfirm', '_posComanda',
+   '_posCancelarPedido', '_posEditarPedido', '_posRenderTicket', '_posRenderProducts',
+   '_posRenderCats'].forEach(k => {
     if (typeof App[k] === 'function') _origPos[k] = App[k];
   });
 
@@ -388,7 +395,7 @@ App.bindControllerBridges = function() {
   App._posCancelar = _posBridge('_posCancelar', '_posCancelar');
   App._posSplit = _posBridge('_posSplit', '_posSplit');
   App._posSplitAssign = _posBridge('_posSplitAssign', '_posSplitAssign');
-  App._posSplitConfirm = function() { /* legacy no-op */ };
+  App._posSplitConfirm = _posBridge('_posSplitConfirm', '_posSplitConfirm');
   App._posSplitCancel = _posBridge('_posSplitCancel', '_posSplitExit');
   App._posComanda = _posBridge('_posComanda', '_posComanda');
   App._posCancelarPedido = _posBridge('_posCancelarPedido', '_posCancelarPedido');

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'copito-pos-v1.39';
+const CACHE_NAME = 'copito-pos-v1.47';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -16,6 +16,8 @@ const STATIC_ASSETS = [
   './js/core/format.js',
   './js/core/ui.js',
   './js/core/pager.js',
+  './js/core/router.js',
+  './js/core/event-router.js',
   './js/core/api-pedidos.js',
   './js/core/api-caja.js',
   './js/core/api-productos.js',
@@ -33,7 +35,6 @@ const STATIC_ASSETS = [
   './js/modules/mesas.js',
   './js/modules/pedidos.js',
   './js/modules/split-bill.js',
-  './js/modules/caja.js',
   './js/modules/config.js',
   './js/modules/materia_prima.js',
   './js/modules/recetas.js',
