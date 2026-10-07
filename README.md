@@ -15,8 +15,8 @@ Vanilla **PHP + MySQL + JS**, sin frameworks ni build. ~350 KB.
 
 ## Puesta en marcha
 
-1. **Base de datos**: importar `sql/dpcoffee.sql` y luego las migraciones en orden
-   (ver *Esquema* más abajo).
+1. **Base de datos**: importar `sql/dpcoffee.sql` y luego **solo las migraciones
+   v4 en adelante** (ver *Esquema* más abajo).
 2. **Entorno**: crear `.env` en la raíz del proyecto a partir de `.env.example`.
    Sin él **toda la API responde 500** (`DB_PASS no está definido`).
 
