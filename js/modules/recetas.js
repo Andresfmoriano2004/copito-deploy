@@ -40,7 +40,7 @@ Object.assign(App, {
       this.recetasProductos = prods;
       this._renderRecetas();
     } catch (e) {
-      el.innerHTML = `<div class="empty-state">Error: ${e.message}</div>`;
+      el.innerHTML = `<div class="empty-state">Error: ${App.escapeHtml(e.message)}</div>`;
     }
   },
 

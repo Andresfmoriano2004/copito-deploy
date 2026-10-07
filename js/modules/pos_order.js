@@ -44,7 +44,7 @@ Object.assign(App, {
     try {
       this._pos.productos = await apiGet('/productos');
     } catch(e) {
-      container.innerHTML = `<div class="pos-layout"><div class="pos-left" style="display:flex;align-items:center;justify-content:center;color:var(--danger);">Error: ${e.message}</div></div>`;
+      container.innerHTML = `<div class="pos-layout"><div class="pos-left" style="display:flex;align-items:center;justify-content:center;color:var(--danger);">Error: ${App.escapeHtml(e.message)}</div></div>`;
       return;
     }
 

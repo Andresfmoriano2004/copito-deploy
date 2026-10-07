@@ -147,7 +147,7 @@ Object.assign(App, {
       }
       if (msgEl) msgEl.innerHTML = '';
     }).catch(err => {
-      if (msgEl) msgEl.innerHTML = `<div class="message error">Error: ${err.message}</div>`;
+      if (msgEl) msgEl.innerHTML = `<div class="message error">Error: ${App.escapeHtml(err.message)}</div>`;
       if (chartEl) chartEl.innerHTML = '';
     });
   },
@@ -354,7 +354,7 @@ Object.assign(App, {
 
       if (msgEl) msgEl.innerHTML = '';
     }).catch(err => {
-      if (msgEl) msgEl.innerHTML = `<div class="message error">Error: ${err.message}</div>`;
+      if (msgEl) msgEl.innerHTML = `<div class="message error">Error: ${App.escapeHtml(err.message)}</div>`;
       if (chartEl) chartEl.innerHTML = '';
     });
   },

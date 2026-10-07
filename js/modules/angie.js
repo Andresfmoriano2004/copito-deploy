@@ -16,7 +16,7 @@ Object.assign(App, {
       this.gastoResumen = resumen;
       this._renderGastoPersonal();
     } catch (e) {
-      el.innerHTML = `<div class="empty-state">Error: ${e.message}</div>`;
+      el.innerHTML = `<div class="empty-state">Error: ${App.escapeHtml(e.message)}</div>`;
     }
   },
 
@@ -126,7 +126,7 @@ Object.assign(App, {
     // Load products for datalist
     apiGet('/productos').then(prods => {
       const dl = document.getElementById('angieProductosList');
-      if (dl) dl.innerHTML = prods.map(p => `<option value="${p.nombre}">${p.codigo}</option>`).join('');
+      if (dl) dl.innerHTML = prods.map(p => `<option value="${App.escapeHtml(p.nombre)}">${App.escapeHtml(p.codigo)}</option>`).join('');
     }).catch(() => {});
   },
 

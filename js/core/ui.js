@@ -47,7 +47,7 @@ Object.assign(App, {
     ` : '';
 
     modal.innerHTML = `<div style="background:white;border-radius:12px;padding:30px;max-width:480px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-      <h3 style="color:var(--primary);margin-bottom:5px;">${titulo}</h3>
+      <h3 style="color:var(--primary);margin-bottom:5px;">${this.safeText(titulo)}</h3>
       ${itemsInfoHtml}
       <div style="font-size:2rem;font-weight:800;color:var(--primary-dark);margin:10px 0 20px;padding:12px;background:var(--primary-bg);border-radius:12px;text-align:center;">${this.fmt(total)}</div>
       ${metodosHtml}
@@ -182,7 +182,7 @@ Object.assign(App, {
       </div>`;
     });
     modal.innerHTML = `<div style="background:white;border-radius:12px;padding:30px;max-width:440px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-      <h3 style="color:var(--primary);margin-bottom:5px;">${titulo}</h3>
+      <h3 style="color:var(--primary);margin-bottom:5px;">${this.safeText(titulo)}</h3>
       <div style="font-size:1.6rem;font-weight:800;color:var(--primary-dark);margin:10px 0 5px;padding:10px;background:var(--primary-bg);border-radius:12px;text-align:center;">Saldo: ${this.fmt(saldo)}</div>
       <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:15px;">Puede abonar cualquier valor hasta el saldo. Se acumula con los pagos anteriores.</p>
       ${metodosHtml}
@@ -272,18 +272,46 @@ Object.assign(App, {
   },
 
   showMessage(id, text, type) {
-    const el = typeof id === 'string' ? document.getElementById(id) : id;
+    const normalizedType = this.normalizeMessageType(type);
+    const html = `<div class="message ${normalizedType}">${this.safeText(text)}</div>`;
+
+    let el = typeof id === 'string' ? document.getElementById(id) : id;
+    let flotante = false;
+
+    // Si el contenedor pedido no existe (p. ej. 'globalMsg', 'reportesMsg'),
+    // NUNCA se descarta el mensaje: se muestra en un contenedor flotante.
+    if (!el && typeof id === 'string') { el = this._msgFlotante(); flotante = true; }
     if (!el) { console.warn('showMessage: element not found', id); return; }
 
-    const normalizedType = this.normalizeMessageType(type);
-    const safeText = this.safeText(text);
-    el.innerHTML = `<div class="message ${normalizedType}">${safeText}</div>`;
+    if (flotante) {
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = html;
+      const nodo = wrapper.firstElementChild;
+      el.appendChild(nodo);
+      if (normalizedType !== 'error') setTimeout(() => nodo.remove(), 5000);
+      return;
+    }
 
+    el.innerHTML = html;
     if (normalizedType !== 'error') {
       setTimeout(() => {
         if (el && el.innerHTML.includes('message')) el.innerHTML = '';
       }, 5000);
     }
+  },
+
+  // Contenedor flotante creado bajo demanda para mensajes sin destino.
+  _msgFlotante() {
+    let box = document.getElementById('__msgFlotante');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = '__msgFlotante';
+      box.setAttribute('role', 'status');
+      box.setAttribute('aria-live', 'polite');
+      box.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:3000;width:min(92%,540px);display:flex;flex-direction:column;gap:8px;pointer-events:none;';
+      document.body.appendChild(box);
+    }
+    return box;
   },
 
   createModalBackdrop(html, options = {}) {

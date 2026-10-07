@@ -54,13 +54,13 @@ Object.assign(App, {
       Promise.all([obtenerGrupos(), obtenerUnidades()]).then(([grupos, unidades]) => {
         const grupoSel = document.getElementById('prodGrupo');
         const unidSel = document.getElementById('prodUnidad');
-        if (grupoSel) { grupoSel.innerHTML = grupos.map(g => `<option value="${g}">${g}</option>`).join('') + '<option value="">-- Nuevo --</option>'; }
+        if (grupoSel) { grupoSel.innerHTML = grupos.map(g => `<option value="${App.escapeHtml(g)}">${App.escapeHtml(g)}</option>`).join('') + '<option value="">-- Nuevo --</option>'; }
         if (unidSel) {
           if (!unidades.includes('Unidad')) {
             unidades = ['Unidad', ...unidades];
             crearUnidad('Unidad').catch(() => {});
           }
-          unidSel.innerHTML = unidades.map(u => `<option value="${u}">${u}</option>`).join('') + '<option value="">-- Nueva --</option>';
+          unidSel.innerHTML = unidades.map(u => `<option value="${App.escapeHtml(u)}">${App.escapeHtml(u)}</option>`).join('') + '<option value="">-- Nueva --</option>';
           unidSel.value = 'Unidad';
         }
       });
@@ -227,8 +227,8 @@ Object.assign(App, {
             <div class="form-grid">
               <div class="form-group"><label>Código</label><input type="text" value="${this.escapeHtml(prod.codigo)}" readonly style="background:#f5f5f5;"></div>
               <div class="form-group"><label>Nombre</label><input id="editProdNombre" type="text" value="${this.escapeHtml(prod.nombre)}"></div>
-              <div class="form-group"><label>Unidad</label><select id="editProdUnidad">${unidades.map(u => `<option value="${u}" ${prod.unidad === u ? 'selected' : ''}>${u}</option>`).join('')}</select></div>
-              <div class="form-group"><label>Grupo</label><select id="editProdGrupo">${grupos.map(g => `<option value="${g}" ${prod.grupo === g ? 'selected' : ''}>${g}</option>`).join('')}</select></div>
+              <div class="form-group"><label>Unidad</label><select id="editProdUnidad">${unidades.map(u => `<option value="${App.escapeHtml(u)}" ${prod.unidad === u ? 'selected' : ''}>${App.escapeHtml(u)}</option>`).join('')}</select></div>
+              <div class="form-group"><label>Grupo</label><select id="editProdGrupo">${grupos.map(g => `<option value="${App.escapeHtml(g)}" ${prod.grupo === g ? 'selected' : ''}>${App.escapeHtml(g)}</option>`).join('')}</select></div>
               <div class="form-group"><label>Stock Mín (alerta)</label><input id="editProdStockMin" type="number" min="0" step="0.01" value="${prod.stockMinimo}"></div>
               <div class="form-group"><label>Precio Venta</label><input id="editProdPrecio" type="number" min="0" step="1" value="${prod.precio}"></div>
               <div class="form-group"><label>Costo Unitario</label><input id="editProdCosto" type="number" min="0" step="1" value="${prod.costo || 0}"></div>
