@@ -139,6 +139,11 @@ mientras `index.html` y `sw.js` siguen en 200.
 - [ ] README desactualizado (ver `docs/auditoria/`).
 - [ ] Migraciones `v2`, `v3`, `v5`, `v6`, `v7` no son idempotentes: re-ejecutarlas
       rompe. `v4`, `v7a` y `v8` sí se pueden correr varias veces.
-- [ ] Reglas del proyecto incumplidas por el propio código: 14 `catch {}` vacíos
-      en JS y 7 `@keyframes` en CSS (los `@keyframes` incluyen el spinner, que
-      es funcional — decidir si se relaja la regla o se reimplementa).
+- [ ] Bloques `catch` vacíos en JS que siguen sin reportar nada:
+      `js/app.js:102` (localStorage), `js/modules/angie.js:156`,
+      `js/modules/pos_order.js:71` y `:394` (este último borra items del pedido),
+      `js/controllers/pos_controller.js:56`.
+      Los dos críticos (`_posSyncCart` y `_posCancelar`) ya sí avisan.
+- [ ] 7 `@keyframes` en CSS, prohibidos por las reglas del proyecto — pero
+      incluyen el spinner, que **es** funcional. Decidir si se relaja la regla o
+      se reimplementa sin animación; no se han tocado para no romper la UI.
