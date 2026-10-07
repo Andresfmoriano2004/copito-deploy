@@ -45,6 +45,46 @@ function getProductoPrecio($pdo, $codigo) {
 }
 
 /**
+ * Resuelve el precio unitario de un ítem según el rol (política del negocio).
+ *
+ * - admin : precio libre. Si envía 0 o no envía nada, usa el de catálogo.
+ * - vendedor : no puede desviarse del catálogo. Se acepta el precio del catálogo
+ *   o el que el ítem ya tiene (para no invalidar una edición de cantidad en un
+ *   ítem cuyo precio ajustó un admin). Cualquier otro valor → 403.
+ *
+ * @param float      $precioCliente  precioUnitario recibido del cliente
+ * @param float      $precioCatalogo productos.precio del ítem
+ * @param array      $authUser       usuario autenticado (usa ['rol'])
+ * @param float|null $precioActual   precio ya guardado del ítem (solo en PUT)
+ * @return float precio definitivo
+ */
+function aplicarPrecioItem($precioCliente, $precioCatalogo, $authUser, $precioActual = null) {
+  $precioCliente = round((float)$precioCliente, 2);
+  $precioCatalogo = round((float)$precioCatalogo, 2);
+
+  if (($authUser['rol'] ?? '') === 'admin') {
+    return $precioCliente > 0 ? $precioCliente : $precioCatalogo;
+  }
+  if ($precioCliente <= 0) return $precioCatalogo;
+
+  // Comparación en centavos enteros. En coma flotante
+  // abs(8000.01 - 8000.00) === 0.010000000000005116, así que un `<= 0.01`
+  // acepta o rechaza el mismo caso según los valores concretos.
+  $centsCliente  = (int)round($precioCliente * 100);
+  $centsCatalogo = (int)round($precioCatalogo * 100);
+  $coincideCatalogo = $centsCliente === $centsCatalogo;
+  $sinCambio = $precioActual !== null && $centsCliente === (int)round(round((float)$precioActual, 2) * 100);
+  if (!$coincideCatalogo && !$sinCambio) {
+    jsonError(
+      'El precio ($' . number_format($precioCliente, 0, ',', '.') . ') no coincide con el catálogo ($' .
+      number_format($precioCatalogo, 0, ',', '.') . '). Solo un administrador puede aplicar otro precio.',
+      403
+    );
+  }
+  return $precioCliente;
+}
+
+/**
  * Register stock exit for paid items and mark items as pagado.
  */
 function registrarMovimientosStock($pdo, $items, $notaBase, $userId) {

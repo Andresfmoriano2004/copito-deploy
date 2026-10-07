@@ -52,7 +52,8 @@ if ($method === 'POST' && $path === 'usuarios') {
       }
       jsonError('El nombre de usuario o código ya existe');
     }
-    jsonError($e->getMessage(), 500);
+    error_log('Copito error creando usuario: ' . $e->getMessage());
+    jsonError('No se pudo crear el usuario', 500);
   }
 }
 

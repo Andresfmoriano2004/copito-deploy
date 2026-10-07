@@ -74,7 +74,7 @@ if ($method === 'POST' && $path === 'consumos-internos') {
       jsonError("Stock insuficiente. Disponible: {$stockActual}");
     }
 
-    $precio = round((float)$pRow['precio']);
+    $precio = round((float)$pRow['precio'], 2);
     $subtotal = round($precio * $v['cantidad'], 2);
 
     $pdo->prepare('INSERT INTO consumos_internos (persona, codigo_producto, cantidad, precio_unitario, subtotal, notas, usuario_id) VALUES (?,?,?,?,?,?,?)')

@@ -25,6 +25,7 @@ if ($method === 'POST' && $path === 'unidades') {
 
 // DELETE /api/unidades/{nombre}
 if ($method === 'DELETE' && preg_match('#^unidades/(.+)$#', $path, $m)) {
+  requireRole('admin');
   $nombre = urldecode($m[1]);
   db()->prepare('DELETE FROM unidades WHERE nombre=?')->execute([$nombre]);
   jsonResponse(['success' => true, 'mensaje' => 'Unidad eliminada']);

@@ -16,6 +16,8 @@ if ($method === 'POST' && preg_match('#^pedidos/(.+)/abonar$#', $path, $m)) {
   $pagos = parsePagosFromBody($body['pagos'] ?? []);
   $nuevo = round(array_sum(array_column($pagos, 'monto')), 2);
 
+  if (!cajaAbierta($pdo)) jsonError('No hay caja abierta. Abra caja antes de registrar cobros.', 409);
+
   $pdo->beginTransaction();
   try {
     $pedRow = fetchPedido($pdo, $id);
@@ -27,8 +29,7 @@ if ($method === 'POST' && preg_match('#^pedidos/(.+)/abonar$#', $path, $m)) {
     $lockStmt->execute([$id]);
     $lockStmt->fetchAll();
 
-    $scopeItems = getUnpaidItems($pdo, $id, $cuenta);
-    if (empty($scopeItems)) {
+    $scopeItems = getUnpaidItems($pdo, $id, $cuenta);    if (empty($scopeItems)) {
       // Also try all items in scope (including paid ones) to check if already paid
       if ($cuenta !== null) {
         $allStmt = $pdo->prepare('SELECT * FROM detalle_pedido WHERE id_pedido=? AND cuenta=?');
@@ -57,7 +58,9 @@ if ($method === 'POST' && preg_match('#^pedidos/(.+)/abonar$#', $path, $m)) {
     registrarVentaEnCaja($pdo, $id, $pagos, $cuenta ? "Abono Cuenta $cuenta de $id" : "Abono de $id", $authUser['id']);
 
     if ($cuentaCerrada && $soloPendientes) {
-      registrarMovimientosStock($pdo, $soloPendientes, $cuenta ? "Pedido $id (Cuenta $cuenta)" : "Pedido $id", $authUser['id']);
+      // Solo descontar stock de los items cuyos pagos cubren su subtotal
+      $saldados = filterFullyPaidItems($pdo, $soloPendientes);
+      if ($saldados) registrarMovimientosStock($pdo, $saldados, $cuenta ? "Pedido $id (Cuenta $cuenta)" : "Pedido $id", $authUser['id']);
     }
 
     $pedidoCerrado = closeOrderIfPaid($pdo, $id, $pedRow['total']);
@@ -66,7 +69,7 @@ if ($method === 'POST' && preg_match('#^pedidos/(.+)/abonar$#', $path, $m)) {
   } catch (Exception $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
     error_log('Copito error registrando abono en pedido ' . $id . ': ' . $e->getMessage());
-    jsonError('No se pudo registrar el abono: ' . $e->getMessage(), 500);
+    jsonError('No se pudo registrar el abono', 500);
   }
 
   jsonResponse(['success' => true,

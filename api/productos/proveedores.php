@@ -91,6 +91,7 @@ if ($method === 'PUT' && preg_match('#^proveedores/(\d+)$#', $path, $m)) {
 
 // DELETE /api/proveedores/{id} — desactivación lógica (conserva historial)
 if ($method === 'DELETE' && preg_match('#^proveedores/(\d+)$#', $path, $m)) {
+  requireRole('admin');
   db()->prepare('UPDATE proveedores SET activo=FALSE WHERE id=?')->execute([(int)$m[1]]);
   auditLog($authUser, 'DESACTIVAR_PROVEEDOR', null, null, ['proveedorId' => (int)$m[1]]);
   jsonResponse(['success' => true, 'mensaje' => 'Proveedor desactivado']);

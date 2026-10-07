@@ -29,6 +29,9 @@ function requireAuth($roles = []) {
   $current = $stmt->fetch();
   if (!$current) jsonError('Usuario inactivo o no encontrado', 401);
   $user['codigo_referencia'] = $current['codigo_referencia'];
+  // El rol sale SIEMPRE de la BD: degradar a un admin debe surtir efecto de
+  // inmediato y no esperar a que venza el JWT (24 h).
+  $user['rol'] = $current['rol'];
   if ($roles && !in_array($user['rol'], (array)$roles, true)) jsonError('No tienes permiso', 403);
   return $user;
 }

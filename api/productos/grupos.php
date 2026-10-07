@@ -25,6 +25,7 @@ if ($method === 'POST' && $path === 'grupos') {
 
 // DELETE /api/grupos/{nombre}
 if ($method === 'DELETE' && preg_match('#^grupos/(.+)$#', $path, $m)) {
+  requireRole('admin');
   $nombre = urldecode($m[1]);
   db()->prepare('DELETE FROM grupos WHERE nombre=?')->execute([$nombre]);
   jsonResponse(['success' => true, 'mensaje' => 'Grupo eliminado']);

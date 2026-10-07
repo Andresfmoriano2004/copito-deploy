@@ -54,10 +54,27 @@ function allocatePaymentsToItems($pdo, $idPedido, $cuenta, $items, $montoTotal, 
 }
 
 /**
+ * Filtra los items cuyos pagos registrados cubren por completo su subtotal.
+ * Se usa para descontar stock y marcar `pagado=TRUE` SOLO en items realmente
+ * saldados: con un pago parcial no se descuenta inventario de items impagos.
+ */
+function filterFullyPaidItems($pdo, $items) {
+  if (empty($items)) return [];
+  $ids = array_map(fn($i) => (int)$i['id'], $items);
+  $ph = implode(',', array_fill(0, count($ids), '?'));
+  $stmt = $pdo->prepare("SELECT detalle_id, COALESCE(ROUND(SUM(monto),2),0) AS pagado FROM pagos WHERE detalle_id IN ($ph) GROUP BY detalle_id");
+  $stmt->execute($ids);
+  $paid = [];
+  foreach ($stmt->fetchAll() as $row) $paid[(int)$row['detalle_id']] = round((float)$row['pagado'], 2);
+  return array_values(array_filter($items, fn($i) =>
+    ($paid[(int)$i['id']] ?? 0) >= round((float)$i['subtotal'], 2) - 0.01
+  ));
+}
+
+/**
  * Get unpaid items within a scope (order or account).
  */
-function getUnpaidItems($pdo, $idPedido, $cuenta = null) {
-  if ($cuenta !== null) {
+function getUnpaidItems($pdo, $idPedido, $cuenta = null) {  if ($cuenta !== null) {
     $stmt = $pdo->prepare('SELECT * FROM detalle_pedido WHERE id_pedido=? AND (cuenta=? OR (cuenta IS NULL AND ? IS NULL)) AND pagado=FALSE');
     $stmt->execute([$idPedido, $cuenta, $cuenta]);
   } else {
@@ -117,11 +134,21 @@ function closeOrderIfPaid($pdo, $idPedido, $totalPedido) {
 }
 
 /**
+ * ¿Hay una caja abierta? Se usa para no registrar cobros que nunca entrarán
+ * en el arqueo (antes `registrarVentaEnCaja` los descartaba en silencio).
+ */
+function cajaAbierta($pdo) {
+  return (bool)$pdo->query("SELECT id FROM caja WHERE estado='Abierta' LIMIT 1")->fetch();
+}
+
+/**
  * Register sale in cash register.
+ * Lanza excepción si no hay caja abierta: un cobro sin caja no debe quedar
+ * registrado en `pagos` sin su movimiento en `caja_movimientos`.
  */
 function registrarVentaEnCaja($pdo, $idPedido, $pagos, $desc, $userId) {
   $caja = $pdo->query("SELECT id FROM caja WHERE estado='Abierta' LIMIT 1")->fetch();
-  if (!$caja) return;
+  if (!$caja) throw new Exception('No hay caja abierta: el cobro no puede registrarse en caja');
   $stmt = $pdo->prepare('INSERT INTO caja_movimientos (id_caja, tipo, metodo_pago, tipo_pago, descripcion, monto, id_pedido, usuario_id) VALUES (?,?,?,?,?,?,?,?)');
   foreach ($pagos as $p) {
     $stmt->execute([$caja['id'], 'VENTA', $p['metodoPago'], tipoPago($p['metodoPago']), $desc, $p['monto'], $idPedido, $userId]);

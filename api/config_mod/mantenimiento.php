@@ -78,7 +78,8 @@ if ($method === 'POST' && $path === 'mantenimiento/limpiar') {
   } catch (Exception $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
     try { $pdo->exec('SET FOREIGN_KEY_CHECKS=1'); } catch (Exception $ignored) {}
-    jsonError('No se pudo completar la limpieza: ' . $e->getMessage(), 500);
+    error_log('Copito error en mantenimiento: ' . $e->getMessage());
+    jsonError('No se pudo completar la limpieza', 500);
   }
 
   auditLog($authUser, 'LIMPIAR_REGISTROS', null, null, ['modulos' => $modulos, 'eliminados' => $eliminados]);
