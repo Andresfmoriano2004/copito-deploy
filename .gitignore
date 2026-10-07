@@ -28,6 +28,8 @@ test_*.php
 debug*.php
 fix_*.php
 check_*.php
+# ...pero la suite del proyecto SÍ se commitea (run_all.php la ejecuta)
+!tests/test_*.php
 
 # Dependencias (el proyecto no usa, pero si algún día se añaden)
 vendor/
