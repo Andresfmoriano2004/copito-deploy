@@ -7,7 +7,9 @@
 require_once __DIR__ . '/../api/config.php';
 require_once __DIR__ . '/../api/shared/jwt.php';
 
-define('TEST_API', 'http://localhost/copito-deploy/api');
+// En las suites que mueven dinero la BD de pruebas sobreescribe TEST_API
+// (ver tests/testdb.php); sin eso se usa Apache contra la BD real.
+define('TEST_API', getenv('TEST_API') ?: 'http://localhost/copito-deploy/api');
 define('TEST_TAG', 'TEST-AUTO');
 
 $__passed = 0;

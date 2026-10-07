@@ -1,14 +1,22 @@
 # ☕ Copito POS — Lista de verificación manual
 
-Lo que la suite automatizada (`php tests/run_all.php`) **no** cubre todavía.
-Ejecutar sobre un entorno con datos de prueba, nunca sobre caja real abierta
-con dinero del día.
+**77 aserciones ya están automatizadas** en `php tests/run_all.php` (precios,
+pago parcial, reversión de stock, arqueo y superficie pública). Aquí solo queda
+lo que la suite no puede comprobar: lo que depende de la interfaz, de un usuario
+`vendedor` real o de dos personas a la vez.
 
-Leyenda: ✅ pasar · ❌ no pasar · ⛔ requiere dos personas o caja aparte
+Las filas marcadas 🤖 tienen su equivalente en código (`tests/<suite>.php`) y ya
+pasan; quedan como referencia de qué se probó y qué no.
+
+Leyenda: ✅ pasar · ❌ no pasar · ⛔ requiere dos personas o caja aparte · 🤖 automatizado
 
 ---
 
 ## 1. Integridad monetaria
+
+> 🤖 **`tests/test_pagos.php` (21 aserciones) y `tests/test_caja.php` (26)**
+> cubren los apartados 1.2 a 1.5 contra una BD aislada (`dpcoffee_test`).
+> Lo que sigue añadido son las partes que solo se ven en pantalla.
 
 ### 1.1 El vendedor no puede fijar precio
 | # | Paso | Esperado |
@@ -61,6 +69,11 @@ huérfanos previos a la fecha de este cambio.
 | 3 | Cerrar con un monto físico distinto al esperado | ✅ calcula la diferencia; se guarda `monto_esperado`, `monto_fisico` y `diferencia` |
 | 4 | Cerrar con la caja ya cerrada (dos pestañas) | ❌ 409 *"La caja ya no está abierta"* |
 | 5 | Registrar un movimiento justo mientras otro cierra | ✅ uno espera al otro; nunca se pierde un movimiento |
+
+> Los pasos 1-4 de esta tabla están 🤖 automatizados (26 aserciones en
+> `tests/test_caja.php`). El paso 5 **no**: necesita dos sesiones abiertas a la
+> vez, y el código solo está protegido por el `FOR UPDATE` de `caja.php`
+> (apertura, movimiento y cierre). Es el único caso que hay que provocar a mano.
 
 ### 1.6 Redondeo
 | # | Paso | Esperado |
@@ -130,15 +143,22 @@ mientras `index.html` y `sw.js` siguen en 200.
 
 ## 5. Pendiente de esta rama
 
-- [ ] Suites `test_pagos`, `test_caja`, `test_inventario`, `test_auth_ratelimit`,
-      `test_split_bill` (declaradas en `tests/run_all.php`, aún sin escribir).
-      Necesitan una **BD de pruebas aparte**: crean pedidos, abren caja y
-      mueven stock real.
+- [x] `tests/test_pagos.php` y `tests/test_caja.php` — escritas y en verde
+      (47 aserciones) sobre `dpcoffee_test`, con guardas de aislamiento.
+- [x] README actualizado: 20 tablas, 13 pestañas, `.env` obligatorio y el
+      orden **real** de migraciones.
+- [ ] Suites `test_inventario`, `test_auth_ratelimit` y `test_split_bill`
+      (se listan como pendientes en `tests/run_all.php`). La infraestructura ya
+      está resuelta en `tests/testdb.php` (BD aislada + `php -S` propio), así que
+      escribirlas es cuestión de casos de prueba.
 - [ ] `Agente/*.md`: promover los prompts a agentes reales en `.opencode/agent/`
       y añadir un `Agente/README.md` índice.
-- [ ] README desactualizado (ver `docs/auditoria/`).
-- [ ] Migraciones `v2`, `v3`, `v5`, `v6`, `v7` no son idempotentes: re-ejecutarlas
-      rompe. `v4`, `v7a` y `v8` sí se pueden correr varias veces.
+- [ ] Migraciones `v5`, `v6`, `v7` no son idempotentes: re-ejecutarlas rompe.
+      `v4`, `v7a` y `v8` sí se pueden correr varias veces.
+      **`v2` y `v3` ya no aplican en instalación nueva**: están consolidadas en
+      `sql/dpcoffee.sql`, así que ejecutarlas después falla con *Duplicate column
+      name*. Verificado empíricamente — `dpcoffee.sql` + `v4→v8` deja los 19
+      tablas esperados (`login_intentos` se crea en runtime).
 - [ ] Bloques `catch` vacíos en JS que siguen sin reportar nada:
       `js/app.js:102` (localStorage), `js/modules/angie.js:156`,
       `js/modules/pos_order.js:71` y `:394` (este último borra items del pedido),

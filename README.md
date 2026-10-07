@@ -76,12 +76,19 @@ uploads/productos/          Imágenes runtime (hash, máx 2 MB, JPG/PNG/WEBP)
 
 `sql/dpcoffee.sql` trae la base (auditoria, caja, caja_movimientos, detalle_pedido,
 grupos, mesas, movimientos, pagos, pedidos, productos, unidades, usuarios).
-Se aplican después, **en orden**:
+
+> ⚠️ **`dpcoffee.sql` ya trae consolidadas la v2 y la v3**: contiene
+> `productos.imagen_url`, `usuarios.codigo_referencia`, `pedidos.cancelado_por`
+> y `mesas.estado_manual`. Ejecutarlas después de importarlo falla con
+> *"Duplicate column name"*. Solo se aplican en instalaciones viejas que
+> arrancaron de una copia anterior a esas migraciones.
+
+En una instalación nueva se aplican **después, solo desde la v4**:
 
 | Archivo | Aporta | ¿Idempotente? |
 |---|---|---|
-| `sql/migracion_v2.sql` | columnas de cancelación, `codigo_referencia`, `imagen_url`, `pagos.usuario_id`, `movimientos.usuario_id` | ⚠️ no re-ejecutar |
-| `sql/migracion_v3.sql` | `mesas.estado_manual` + semillas Mesa 4/5 | ⚠️ no re-ejecutar |
+| `sql/migracion_v2.sql` | columnas de cancelación, `codigo_referencia`, `imagen_url`, `pagos.usuario_id`, `movimientos.usuario_id` | ⚠️ **solo instancias antiguas** (ya incluidas en `dpcoffee.sql`) |
+| `sql/migracion_v3.sql` | `mesas.estado_manual` + semillas Mesa 4/5 | ⚠️ **solo instancias antiguas** (ya incluida en `dpcoffee.sql`) |
 | `sql/migracion_v4_proveedores.sql` | tabla `proveedores` (+tel2/dir2/comentarios) | ✅ |
 | `sql/migracion_v5_fks.sql` | 14 FKs RESTRICT + checks de huérfanos | ⚠️ no re-ejecutar |
 | `sql/migracion_v6_split_cuentas.sql` | `pedidos.cuentas_activas` | ⚠️ no re-ejecutar |
@@ -126,12 +133,24 @@ Tickets (Recibido/Cambio en efectivo, total intacto), Configuración.
 php tests/run_all.php
 ```
 
-* `tests/test_precios.php` — unidad pura, sin BD: 13 casos de la política de precios.
-* `tests/test_seguridad.php` — solo lectura vía HTTP: bloqueos del `.htaccess`,
-  autenticación, rol desde la BD y migración v8.
-* `tests/CHECKLIST.md` — verificación manual de los flujos de dinero, que aún
-  **no** están automatizados (`test_pagos`, `test_caja`, `test_inventario`,
-  `test_auth_ratelimit`, `test_split_bill`): necesitan una BD de pruebas aparte.
+**77 aserciones en 4 suites, todo en verde sobre una instalación limpia.**
+
+| Suite | Cómo corre | Cubre |
+|---|---|---|
+| `test_precios.php` | unidad pura, sin BD ni red | los 13 casos de la política de precios |
+| `test_pagos.php` | BD aislada `dpcoffee_test` + `php -S` propio | cobro sin caja (409), pago parcial vs. stock, reversión al cancelar |
+| `test_caja.php` | igual | apertura única, INGRESO/EGRESO, resumen, cierre con diferencia, nada operable sin caja |
+| `test_seguridad.php` | Apache + BD real, solo lectura | bloqueos del `.htaccess`, autenticación, rol desde la BD, migración v8 |
+
+Las suites de dinero **no tocan la BD real**: `tests/testdb.php` crea
+`dpcoffee_test` (una sola vez, con `dpcoffee.sql` + migraciones v4→v8) y levanta
+un `php -S 127.0.0.1:8099` con `DB_NAME` propio, que se detiene al terminar.
+Cada corrida vacía las tablas volátiles de esa BD. Al final de las dos suites hay
+aserciones de guardia que comprueban que `dpcoffee` sigue con 0 pedidos,
+0 movimientos y 0 cajas de prueba.
+
+Quedan pendientes `test_inventario`, `test_auth_ratelimit` y `test_split_bill`;
+lo que falta se documenta en `tests/CHECKLIST.md`.
 
 Los `test_*.php` de la raíz siguen ignorados por git; los de `tests/` **sí** se
 commitean (`!tests/test_*.php` en `.gitignore`).
