@@ -33,6 +33,13 @@ DirectorySlash Off
   # Bloquear carpeta sql/
   RewriteRule ^sql/ - [F,L]
 
+  # Bloquear material que no forma parte de la app (repo, tests, prompts, docs)
+  # .git contiene el historial completo; tests/ tiene scripts con exec(); Agente/
+  # expone los prompts de auditoría.
+  RewriteRule ^\.git(/|$) - [F,L]
+  RewriteRule ^(tests|Agente|docs)(/|$) - [F,L]
+  RewriteRule ^(README\.md|router\.php|\.gitignore)$ - [F,L]
+
   # Manejar CORS preflight OPTIONS
   RewriteCond %{REQUEST_METHOD} ^OPTIONS$
   RewriteRule ^api(/.*)?$ api.php?route=$1 [L,QSA]
