@@ -10,7 +10,8 @@
  */
 // Orden: primero las unitarias (rápidas), luego las que mueven dinero (crean la
 // BD de pruebas y su servidor) y al final la de superficie pública (necesita Apache).
-$suites = ['test_precios.php', 'test_pagos.php', 'test_caja.php', 'test_seguridad.php'];
+$suites = ['test_precios.php', 'test_pagos.php', 'test_caja.php',
+           'test_facturacion.php', 'test_seguridad.php'];
 $pendientes = ['test_inventario.php', 'test_auth_ratelimit.php', 'test_split_bill.php'];
 
 $globalFail = 0;

@@ -39,7 +39,8 @@ function getStockProducto($pdo, $codigo) {
  * Get product price and name.
  */
 function getProductoPrecio($pdo, $codigo) {
-  $prod = $pdo->prepare('SELECT precio, nombre FROM productos WHERE codigo=?');
+  $prod = $pdo->prepare('SELECT precio, nombre, unidad, iva_porcentaje, tipo_item, codigo_barras
+                         FROM productos WHERE codigo=?');
   $prod->execute([$codigo]);
   return $prod->fetch();
 }

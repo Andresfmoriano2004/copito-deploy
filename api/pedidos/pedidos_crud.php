@@ -16,8 +16,16 @@ if ($method === 'POST' && $path === 'pedidos') {
   }
 
   $id = generarId();
-  $stmt = $pdo->prepare('INSERT INTO pedidos (id_pedido, lugar, cliente, usuario_id, vendedor) VALUES (?,?,?,?,?)');
-  $stmt->execute([$id, $lugar, $cliente, $authUser['id'], $authUser['nombre']]);
+  // Datos fiscales: el POS suele completarlos con un PUT antes de cobrar,
+  // pero se aceptan aquí por si vienen en la misma llamada de creación.
+  $fis = datosClienteFiscal($body);
+  $stmt = $pdo->prepare('INSERT INTO pedidos
+      (id_pedido, lugar, cliente, usuario_id, vendedor,
+       cliente_nit, cliente_dv, cliente_direccion, cliente_email, cliente_regimen, forma_pago)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?)');
+  $stmt->execute([$id, $lugar, $cliente, $authUser['id'], $authUser['nombre'],
+                  $fis['cliente_nit'], $fis['cliente_dv'], $fis['cliente_direccion'],
+                  $fis['cliente_email'], $fis['cliente_regimen'], 'Contado']);
   auditLog($authUser, 'CREAR_PEDIDO', $id, $lugar);
   jsonResponse(['success' => true, 'pedidoId' => $id, 'mensaje' => "Pedido $id creado en $lugar"]);
 }
@@ -141,8 +149,21 @@ if ($method === 'PUT' && preg_match('#^pedidos/([^/]+)$#', $path, $m) && !str_co
   autorizarAccesoPedido($ped, $authUser);
   if ($ped['estado'] !== 'Abierto') jsonError('No se puede editar un pedido ' . $ped['estado'], 409);
   $sets = []; $vals = [];
-  foreach (['cliente', 'lugar', 'notas'] as $f) {
-    if (isset($body[$f])) { $sets[] = "$f=?"; $vals[] = $body[$f]; }
+  // 'notas' => 0 significa TEXT sin límite; el resto se recorta al tamaño
+  // real de la columna para no depender del modo strict de MySQL.
+  foreach (['cliente' => 200, 'lugar' => 50, 'notas' => 0, 'forma_pago' => 30] as $f => $max) {
+    if (!isset($body[$f])) continue;
+    $v = (string)$body[$f];
+    if ($max > 0 && mb_strlen($v) > $max) $v = mb_substr($v, 0, $max);
+    $sets[] = "$f=?";
+    $vals[] = $v;
+  }
+  // Datos fiscales del cliente: solo se tocan los que el POS envió, para que
+  // un PUT parcial no borre la dirección que ya estaba guardada.
+  foreach (datosClienteFiscal($body) as $col => $val) {
+    if (!array_key_exists($col, $body)) continue;
+    $sets[] = "$col=?";
+    $vals[] = $val;
   }
   if (isset($body['cuentasActivas']) && is_array($body['cuentasActivas'])) {
     $sets[] = 'cuentas_activas=?';
@@ -182,11 +203,19 @@ if ($method === 'POST' && preg_match('#^pedidos/(.+)/items$#', $path, $m)) {
   if (!checkStock($pdo, $codigo, $cantidad)) jsonError("Stock insuficiente");
 
   $subtotal = round($cantidad * $precio, 2);
+  // El precio ya incluye IVA: se guarda la línea desgranada para que el
+  // comprobante pueda mostrar base e impuesto por ítem.
+  $imp = calcularImpuestoItem($subtotal, $pRow['iva_porcentaje'] ?? 19);
 
   $pdo->beginTransaction();
   try {
-    $stmt = $pdo->prepare('INSERT INTO detalle_pedido (id_pedido, codigo_producto, nombre_producto, cantidad, precio_unitario, subtotal, notas, cuenta) VALUES (?,?,?,?,?,?,?,?)');
-    $stmt->execute([$id, $codigo, $nombre, $cantidad, $precio, $subtotal, $notas, $cuenta]);
+    $stmt = $pdo->prepare('INSERT INTO detalle_pedido
+        (id_pedido, codigo_producto, nombre_producto, cantidad, precio_unitario,
+         subtotal, notas, cuenta, unidad, tipo_item, iva_porcentaje, base_gravable, iva_valor)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)');
+    $stmt->execute([$id, $codigo, $nombre, $cantidad, $precio, $subtotal, $notas, $cuenta,
+                    $pRow['unidad'] ?: 'Und', $pRow['tipo_item'] ?: 'Bien',
+                    $imp['pct'], $imp['base'], $imp['iva']]);
     updatePedidoTotal($pdo, $id);
 
     auditLog($authUser, 'AGREGAR_PRODUCTO_PEDIDO', $id, null, [
@@ -216,7 +245,7 @@ if ($method === 'PUT' && preg_match('#^pedidos/items/(\d+)$#', $path, $m)) {
   if (!$cantidad || $cantidad <= 0) jsonError('La cantidad debe ser mayor a 0');
   if ($precioCliente < 0) jsonError('El precio no puede ser negativo');
 
-  $det = $pdo->prepare('SELECT p.estado, p.usuario_id, d.id_pedido, d.pagado, d.cantidad, d.codigo_producto, d.precio_unitario, d.subtotal, d.nombre_producto FROM detalle_pedido d JOIN pedidos p ON p.id_pedido=d.id_pedido WHERE d.id=?');
+  $det = $pdo->prepare('SELECT p.estado, p.usuario_id, d.id_pedido, d.pagado, d.cantidad, d.codigo_producto, d.precio_unitario, d.subtotal, d.nombre_producto, d.unidad, d.tipo_item, d.iva_porcentaje FROM detalle_pedido d JOIN pedidos p ON p.id_pedido=d.id_pedido WHERE d.id=?');
   $det->execute([$detId]);
   $row = $det->fetch();
   if (!$row) jsonError('Item no encontrado', 404);
@@ -237,9 +266,27 @@ if ($method === 'PUT' && preg_match('#^pedidos/items/(\d+)$#', $path, $m)) {
   $precio = aplicarPrecioItem($precioCliente, $precioCatalogo, $authUser, (float)$row['precio_unitario']);
   $subtotal = round($cantidad * $precio, 2);
 
+  // Si el producto sigue en catálogo se toman sus datos fiscales actuales;
+  // si fue borrado, se conservan los que ya traía la línea.
+  if ($prodRow) {
+    $unidad = $prodRow['unidad'] ?: 'Und';
+    $tipo   = $prodRow['tipo_item'] ?: 'Bien';
+    $pctIva = (float)$prodRow['iva_porcentaje'];
+  } else {
+    $unidad = $row['unidad'] ?: 'Und';
+    $tipo   = $row['tipo_item'] ?: 'Bien';
+    $pctIva = (float)$row['iva_porcentaje'];
+  }
+  $imp = calcularImpuestoItem($subtotal, $pctIva);
+
   $pdo->beginTransaction();
   try {
-    $pdo->prepare('UPDATE detalle_pedido SET cantidad=?, precio_unitario=?, subtotal=?, notas=?, cuenta=? WHERE id=?')->execute([$cantidad, $precio, $subtotal, $notas, $cuenta, $detId]);
+    $pdo->prepare('UPDATE detalle_pedido
+                    SET cantidad=?, precio_unitario=?, subtotal=?, notas=?, cuenta=?,
+                        unidad=?, tipo_item=?, iva_porcentaje=?, base_gravable=?, iva_valor=?
+                  WHERE id=?')
+        ->execute([$cantidad, $precio, $subtotal, $notas, $cuenta,
+                   $unidad, $tipo, $imp['pct'], $imp['base'], $imp['iva'], $detId]);
     updatePedidoTotal($pdo, $row['id_pedido']);
 
     auditLog($authUser, 'MODIFICAR_PRODUCTO_PEDIDO', $row['id_pedido'], null, [

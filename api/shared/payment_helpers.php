@@ -130,6 +130,11 @@ function closeOrderIfPaid($pdo, $idPedido, $totalPedido) {
   $todosMetodos->execute([$idPedido]);
   $metodos = implode(', ', array_column($todosMetodos->fetchAll(), 'metodo_pago'));
   $pdo->prepare("UPDATE pedidos SET estado='Cerrado', fecha_cierre=NOW(), metodo_pago=? WHERE id_pedido=?")->execute([$metodos, $idPedido]);
+  // El comprobante se emite DENTRO de esta misma transacción: o el pedido
+  // queda cerrado con número, o no queda cerrado. Si la facturación no puede
+  // correr (configuración incompleta) lo deja en el log y no bloquea el cobro;
+  // existe además un endpoint manual para emitir los que se queden pendientes.
+  emitirFacturaSiCorresponde($pdo, $idPedido);
   return true;
 }
 

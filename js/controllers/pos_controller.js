@@ -200,12 +200,20 @@ const PosController = {
     App.mostrarModalPago({
       total: this._subtotal(),
       titulo: '💳 Cobrar Pedido',
-      onConfirm: (pagos, cambio) => {
-        cerrarPedido(Store.get('pos.pedidoId'), pagos, cambio)
+      // El cierre total es el único punto que emite comprobante (v9), así que
+      // es el único que pide los datos del adquirente.
+      clienteFiscal: {},
+      onConfirm: (pagos, cambio, fiscal) => {
+        const pid = Store.get('pos.pedidoId');
+        // Se guardan ANTES de cerrar: al cobrar se emite la factura y el
+        // pedido queda inmutable (409 sobre cualquier edición posterior).
+        const guardar = fiscal ? apiPut(`/pedidos/${pid}`, fiscal) : Promise.resolve();
+        guardar
+          .then(() => cerrarPedido(pid, pagos, cambio))
           .then(res => {
             App.cerrarModal();
             App.showMessage('mesaMsg', res.mensaje, 'success');
-            if (window.Ticket) Ticket.mostrarModal(Store.get('pos.pedidoId'), { cambio });
+            if (window.Ticket) Ticket.mostrarModal(pid, { cambio });
             Store.batch({ 'pos.cart': [], 'pos.pedidoId': null });
             PedidosController.cargarVistaMesas();
           })

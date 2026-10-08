@@ -66,6 +66,7 @@ require_once __DIR__ . '/shared/payment_helpers.php';
 require_once __DIR__ . '/shared/stock_helpers.php';
 require_once __DIR__ . '/shared/order_helpers.php';
 require_once __DIR__ . '/shared/caja_helpers.php';
+require_once __DIR__ . '/shared/facturacion_helpers.php';
 
 // ─── Credentials check ─────────────────────────────────────────────────────
 if (DB_PASS === null) {

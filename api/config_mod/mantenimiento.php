@@ -19,8 +19,9 @@ $path = $_GET['route'] ?? '';
 $pdo = db();
 
 // Orden FK-safe: hijos primero, padres después.
+// `facturas` apunta a `pedidos` con RESTRICT (v9), así que se borra antes.
 $MODULOS = [
-  'pedidos'     => ['pagos', 'detalle_pedido', 'pedidos'],
+  'pedidos'     => ['pagos', 'detalle_pedido', 'facturas', 'pedidos'],
   'movimientos' => ['movimientos'],
   'caja'        => ['caja_movimientos', 'caja'],
   'auditoria'   => ['auditoria'],

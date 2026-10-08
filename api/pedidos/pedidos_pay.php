@@ -49,8 +49,12 @@ if ($method === 'POST' && preg_match('#^pedidos/(.+)/cerrar$#', $path, $m)) {
     $pedidoCerrado = $totalConPago >= $total - 0.01;
     if ($pedidoCerrado) {
       $pdo->prepare("UPDATE pedidos SET estado='Cerrado', fecha_cierre=NOW(), metodo_pago=? WHERE id_pedido=?")->execute([$metodos, $id]);
+      emitirFacturaSiCorresponde($pdo, $id, $authUser['id']);
     } else {
-      $pdo->prepare("UPDATE pedidos SET estado='Abierto', metodo_pago=? WHERE id_pedido=?")->execute([$metodos, $id]);
+      // `AND numero_factura IS NULL`: un pedido ya facturado no se reabre.
+      // Reabrirlo volvería editables sus líneas y el comprobante dejaría de
+      // corresponderse con lo realmente cobrado.
+      $pdo->prepare("UPDATE pedidos SET estado='Abierto', metodo_pago=? WHERE id_pedido=? AND numero_factura IS NULL")->execute([$metodos, $id]);
     }
     $pdo->commit();
     auditLog($authUser, 'REGISTRAR_PAGO', $id, $pedRow['lugar'], ['monto' => $nuevoPago, 'total' => $total, 'pagado' => $totalConPago, 'pendiente' => $saldoPendiente, 'metodos' => $metodos]);

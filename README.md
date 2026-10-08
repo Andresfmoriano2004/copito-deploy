@@ -9,7 +9,7 @@ Vanilla **PHP + MySQL + JS**, sin frameworks ni build. ~350 KB.
 |---|---|
 | Frontend | HTML + CSS + JS vanilla (módulos por `<script>`, fachada global `App`) |
 | Backend | PHP 8.1/8.2 vanilla, PDO, JWT propio (HMAC-SHA256, 24 h) |
-| DB | MySQL/MariaDB, 20 tablas + migraciones |
+| DB | MySQL/MariaDB, 23 tablas + migraciones |
 | PWA | `manifest.json` + `sw.js` (Network-First `/api`, Cache-First estáticos) |
 | Moneda / TZ | `$ COP` · `America/Bogota` |
 
@@ -95,8 +95,9 @@ En una instalación nueva se aplican **después, solo desde la v4**:
 | `sql/migracion_v7_propinas_recetas_angie.sql` | `propina_distribucion`, `recetas` + `pedidos.propina*` | ⚠️ no re-ejecutar |
 | `sql/migracion_v7a_materia_prima.sql` | `materia_prima`, `movimientos_materia_prima`, `consumos_internos` | ✅ |
 | `sql/migracion_v8_propinas_tabla.sql` | tabla `propinas`, enum `PROPINA` en `caja_movimientos` | ✅ |
+| `sql/migracion_v9_facturacion.sql` | comprobante de venta ("Camino A"): tablas `facturas`, `facturacion_consecutivos`, `facturacion_series`; columnas fiscales en `productos`, `detalle_pedido` y `pedidos`; semillas de configuración fiscal | ✅ |
 
-Total: **20 tablas** (`login_intentos` se crea en runtime al primer login).
+Total: **23 tablas** (`login_intentos` se crea en runtime al primer login).
 Todas en `utf8mb4_general_ci`.
 
 ## Uso (roles)
@@ -133,17 +134,18 @@ Tickets (Recibido/Cambio en efectivo, total intacto), Configuración.
 php tests/run_all.php
 ```
 
-**77 aserciones en 4 suites, todo en verde sobre una instalación limpia.**
+**172 aserciones en 5 suites, todo en verde sobre una instalación limpia.**
 
 | Suite | Cómo corre | Cubre |
 |---|---|---|
 | `test_precios.php` | unidad pura, sin BD ni red | los 13 casos de la política de precios |
 | `test_pagos.php` | BD aislada `dpcoffee_test` + `php -S` propio | cobro sin caja (409), pago parcial vs. stock, reversión al cancelar |
 | `test_caja.php` | igual | apertura única, INGRESO/EGRESO, resumen, cierre con diferencia, nada operable sin caja |
+| `test_facturacion.php` | igual | IVA desgranado desde precio con IVA incluido, emisión solo al cobrar el total, correlatividad sin huecos, pedido facturado inmutable, NIT del cliente, config del emisor, anulación, vista impresa |
 | `test_seguridad.php` | Apache + BD real, solo lectura | bloqueos del `.htaccess`, autenticación, rol desde la BD, migración v8 |
 
 Las suites de dinero **no tocan la BD real**: `tests/testdb.php` crea
-`dpcoffee_test` (una sola vez, con `dpcoffee.sql` + migraciones v4→v8) y levanta
+`dpcoffee_test` (una sola vez, con `dpcoffee.sql` + migraciones v4→v9) y levanta
 un `php -S 127.0.0.1:8099` con `DB_NAME` propio, que se detiene al terminar.
 Cada corrida vacía las tablas volátiles de esa BD. Al final de las dos suites hay
 aserciones de guardia que comprueban que `dpcoffee` sigue con 0 pedidos,
@@ -175,10 +177,34 @@ GET  /api/propinas
 GET  /api/reportes/exportar-excel?tipo=movimientos|ventas|inventario|auditoria
 GET  /api/usuarios[?page=]                 (requiere admin)
 GET  /api/auditoria[?page=]
+GET  /api/facturacion[?pagina=&estado=]     listado de comprobantes
+GET  /api/facturacion/{numero}             detalle (FEV-000001)
+GET  /api/facturacion/config               emisor + serie de numeración
+PUT  /api/facturacion/config               editar emisor / IVA (admin)
+POST /api/facturacion/emitir               emitir pendientes   (admin)
+POST /api/facturacion/{numero}/anular      anular con motivo    (admin)
 ```
 
 Listados: sin `?page=` devuelven array legacy; con `?page=` devuelven
 `{data, total, page, limit}`.
+
+## Facturación — "Camino A"
+
+Comprobante de venta con **numeración propia** (prefijo + consecutivo), sin
+resolución DIAN, sin CUFE ni TrackID. Aplicado por `sql/migracion_v9_facturacion.sql`.
+
+- **El precio de venta ya incluye IVA**: `base = precio / 1.19` y `iva = precio − base`,
+  así `base + iva == total` al centavo. La tarifa es **19 % por defecto y editable
+  por producto** (`productos.iva_porcentaje`).
+- **Se emite automáticamente al cobrar el total.** Un abono, un pago por ítem o
+  un pedido abierto **no** facturan ni gastan consecutivo.
+- **Una sola factura por pedido**; el número se reserva con `FOR UPDATE` dentro
+  de la misma transacción que cierra, así que dos cajas a la vez no lo repiten.
+- **Un pedido facturado queda inmutable**: cualquier edición posterior responde `409`,
+  porque sus líneas son el soporte fiscal.
+- Anular exige motivo, no libera el pedido ni reutiliza el número.
+- Los datos del adquirente se capturan en el modal de cobro; si no se llenan,
+  el comprobante imprime **CONSUMIDOR FINAL**.
 
 ## Seguridad en el despliegue
 

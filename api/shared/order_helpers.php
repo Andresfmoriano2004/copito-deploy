@@ -18,7 +18,14 @@ function fetchPedidoItems($pdo, $id) {
     'id' => (int)$d['id'], 'codigo' => $d['codigo_producto'], 'nombre' => $d['nombre_producto'],
     'cantidad' => (float)$d['cantidad'], 'precioUnitario' => (float)$d['precio_unitario'],
     'subtotal' => (float)$d['subtotal'], 'notas' => $d['notas'] ?? '', 'cuenta' => $d['cuenta'] ?? null,
-    'pagado' => (bool)$d['pagado']
+    'pagado' => (bool)$d['pagado'],
+    // Campos fiscales de la línea (v9). El comprobante los lee de aquí:
+    // detalle_pedido queda inmutable en cuanto el pedido sale de 'Abierto'.
+    'unidad' => $d['unidad'] ?? 'Und',
+    'tipoItem' => $d['tipo_item'] ?? 'Bien',
+    'ivaPorcentaje' => (float)($d['iva_porcentaje'] ?? 0),
+    'baseGravable' => (float)($d['base_gravable'] ?? 0),
+    'ivaValor' => (float)($d['iva_valor'] ?? 0),
   ], $det->fetchAll());
 }
 
@@ -35,11 +42,27 @@ function fetchPedidoPagos($pdo, $id) {
   ], $pagStmt->fetchAll());
 }
 
+/**
+ * Recalcula el total del pedido y sus agregados fiscales.
+ *
+ * Los totales de IVA se SUMAN desde detalle_pedido (que ya guardó cada línea
+ * desgranada al agregarla) en lugar de recomputarlos: así el encabezado nunca
+ * puede divergir de la suma de sus propias líneas.
+ */
 function updatePedidoTotal($pdo, $id) {
-  $sum = $pdo->prepare('SELECT COALESCE(ROUND(SUM(subtotal),2),0) AS total FROM detalle_pedido WHERE id_pedido=?');
+  $sum = $pdo->prepare('SELECT COALESCE(ROUND(SUM(subtotal),2),0)       AS total,
+                               COALESCE(ROUND(SUM(base_gravable),2),0)   AS base,
+                               COALESCE(ROUND(SUM(iva_valor),2),0)       AS iva
+                        FROM detalle_pedido WHERE id_pedido=?');
   $sum->execute([$id]);
-  $total = round((float)$sum->fetch()['total'], 2);
-  $pdo->prepare('UPDATE pedidos SET total=? WHERE id_pedido=?')->execute([$total, $id]);
+  $t = $sum->fetch() ?: ['total' => 0, 'base' => 0, 'iva' => 0];
+  $pdo->prepare('UPDATE pedidos SET total=?, total_base=?, total_iva=? WHERE id_pedido=?')
+      ->execute([
+        round((float)$t['total'], 2),
+        round((float)$t['base'], 2),
+        round((float)$t['iva'], 2),
+        $id,
+      ]);
 }
 
 function validarCuentaPedido($pdo, $idPedido, $cuenta) {

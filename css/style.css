@@ -1576,6 +1576,21 @@
       margin: 6px 0 2px;
     }
 
+    /* Número de comprobante (prefijo + consecutivo, Camino A) */
+    .ticket-folio {
+      font-size: 12px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      margin-top: 2px;
+    }
+
+    .ticket-folio-anulada {
+      color: #c62828;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      margin-top: 6px;
+    }
+
     .ticket-divider {
       border-top: 1px dashed #444;
       margin: 8px 0;
@@ -1647,6 +1662,13 @@
     }
 
     .ticket-item-sub {
+      font-size: 10px;
+      color: #555;
+      padding-left: 24px;
+    }
+
+    /* Desgranado fiscal por línea: qué parte es base y qué parte es IVA */
+    .ticket-item-fiscal {
       font-size: 10px;
       color: #555;
       padding-left: 24px;

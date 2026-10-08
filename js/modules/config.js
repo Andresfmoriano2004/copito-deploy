@@ -8,7 +8,12 @@ Object.assign(App, {
     const container = document.querySelector('#configuracion .content-body');
     if (!container) return;
     const esAdmin = this.state.user?.rol === 'admin';
-    Promise.all([obtenerGrupos(), obtenerUnidades(), esAdmin ? obtenerUsuarios().catch(() => []) : Promise.resolve([])]).then(([grupos, unidades, usuarios]) => {
+    Promise.all([
+      obtenerGrupos(), obtenerUnidades(),
+      esAdmin ? obtenerUsuarios().catch(() => []) : Promise.resolve([]),
+      // Datos del emisor + serie de numeración (v9). Solo admin ve esto.
+      esAdmin ? apiGet('/facturacion/config').catch(() => null) : Promise.resolve(null)
+    ]).then(([grupos, unidades, usuarios, fac]) => {
       container.innerHTML = `
         <div class="card"><div class="card-header">Herramientas de Administración</div><div class="card-body">
           <div class="actions">
@@ -45,6 +50,43 @@ Object.assign(App, {
               <td>${u.activo ? `<button class="btn-icon" data-action="desactivar-usuario" data-userid="${u.id}" title="Desactivar">🚫</button>` : `<button class="btn-icon" data-action="reactivar-usuario" data-userid="${u.id}" title="Reactivar">♻️</button>`}</td>
             </tr>`).join('')}</tbody></table></div>
         </div></div>` : ''}
+        ${esAdmin && fac ? `
+        <div class="card"><div class="card-header">🧾 Facturación — Comprobante de venta</div><div class="card-body">
+          <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:12px;">
+            <strong>Camino A</strong>: numeración propia con prefijo
+            <strong>${this.escapeHtml(fac.serie?.[0]?.prefijo || '—')}</strong>, sin resolución DIAN.
+            El comprobante se emite solo al cobrar el total. El precio de venta <strong>ya incluye IVA</strong>
+            y aquí se define la tarifa con la que se desgrana.
+          </p>
+          <div class="form-grid">
+            <div class="form-group"><label for="facEmNombre">Nombre comercial</label><input id="facEmNombre" type="text" maxlength="120" autocomplete="organization" value="${this.safeText(fac.empresa?.nombre_comercial || '')}"></div>
+            <div class="form-group"><label for="facEmRazon">Razón social</label><input id="facEmRazon" type="text" maxlength="160" autocomplete="off" value="${this.safeText(fac.empresa?.razon_social || '')}"></div>
+            <div class="form-group"><label for="facEmNit">NIT</label><input id="facEmNit" type="text" maxlength="15" inputmode="numeric" autocomplete="off" value="${this.safeText(fac.empresa?.nit || '')}"></div>
+            <div class="form-group"><label for="facEmDv">DV</label><input id="facEmDv" type="text" maxlength="2" inputmode="numeric" autocomplete="off" value="${this.safeText(fac.empresa?.dv || '')}"></div>
+            <div class="form-group"><label for="facEmDir">Dirección</label><input id="facEmDir" type="text" maxlength="200" autocomplete="off" value="${this.safeText(fac.empresa?.direccion || '')}"></div>
+            <div class="form-group"><label for="facEmCiudad">Ciudad</label><input id="facEmCiudad" type="text" maxlength="80" autocomplete="off" value="${this.safeText(fac.empresa?.ciudad || '')}"></div>
+            <div class="form-group"><label for="facEmTel">Teléfono</label><input id="facEmTel" type="text" maxlength="40" autocomplete="off" value="${this.safeText(fac.empresa?.telefono || '')}"></div>
+            <div class="form-group"><label for="facEmReg">Régimen</label><input id="facEmReg" type="text" maxlength="30" autocomplete="off" value="${this.safeText(fac.empresa?.regimen || '')}"></div>
+            <div class="form-group"><label for="facEmAct">Actividad económica (DIAN)</label><input id="facEmAct" type="text" maxlength="20" inputmode="numeric" autocomplete="off" placeholder="561101" value="${this.safeText(fac.empresa?.actividad_economica || '')}"></div>
+            <div class="form-group"><label for="facEmSub">Subtítulo del comprobante</label><input id="facEmSub" type="text" maxlength="120" autocomplete="off" value="${this.safeText(fac.empresa?.subtitulo || '')}"></div>
+            <div class="form-group"><label for="facEmPie">Mensaje de pie</label><input id="facEmPie" type="text" maxlength="120" autocomplete="off" value="${this.safeText(fac.empresa?.mensaje_pie || '')}"></div>
+            <div class="form-group"><label for="facEmPie2">Pie secundario</label><input id="facEmPie2" type="text" maxlength="120" autocomplete="off" value="${this.safeText(fac.empresa?.pie_secundario || '')}"></div>
+            <div class="form-group"><label for="facIva">Tarifa IVA por defecto (%)</label><input id="facIva" type="number" min="0" max="100" step="0.01" value="${this.safeText(String(fac.porcentaje ?? 19))}"></div>
+            <div class="form-group"><label for="facActivo">Estado de la facturación</label>
+              <select id="facActivo">
+                <option value="1" ${fac.activo ? 'selected' : ''}>✅ Activa — emite comprobante al cobrar</option>
+                <option value="0" ${fac.activo ? '' : 'selected'}>⏸ Pausada — solo ticket, sin número</option>
+              </select>
+            </div>
+          </div>
+          ${fac.serie?.length ? `
+          <div style="margin-top:10px;font-size:0.85rem;color:var(--text-muted);">
+            ${fac.serie.map(s => `<span class="chip">Serie <strong>${this.escapeHtml(s.prefijo)}</strong> — siguiente <strong>${s.siguiente}</strong>${s.resolucion ? ` · Res. ${this.escapeHtml(s.resolucion)}` : ''}${s.vigenciaHasta ? ` · vigente hasta ${s.vigenciaHasta}` : ''}${s.activo ? '' : ' · inactiva'}</span>`).join(' ')}
+          </div>` : ''}
+          <div class="actions" style="margin-top:12px;">
+            <button class="btn btn-success" data-action="guardar-facturacion" type="button">💾 Guardar configuración fiscal</button>
+          </div>
+        </div></div>` : ''}
         <div class="card"><div class="card-header">🔍 Auditoría ${esAdmin ? '(todas las operaciones)' : '(mis operaciones)'}</div><div class="card-body">
           <div class="form-grid">
             <div class="form-group"><label for="auditPedido">Pedido</label><input id="auditPedido" type="text" placeholder="PED-..."></div>
@@ -77,6 +119,74 @@ Object.assign(App, {
     }).catch(err => { this.showMessage(container, 'Error: ' + err.message, 'error'); });
   },
 
+
+  /**
+   * Guarda los datos del emisor y la tarifa de IVA (solo admin).
+   * Todo se envía completo: el PUT del backend aplica lo que recibe y la lista
+   * blanca de `api/facturacion/facturacion.php` solo admite estas claves.
+   */
+  async guardarConfigFacturacion() {
+    const v = id => (document.getElementById(id)?.value ?? '').trim();
+    const body = {
+      nombre_comercial: v('facEmNombre'),
+      razon_social: v('facEmRazon'),
+      nit: v('facEmNit'),
+      dv: v('facEmDv'),
+      direccion: v('facEmDir'),
+      ciudad: v('facEmCiudad'),
+      telefono: v('facEmTel'),
+      regimen: v('facEmReg'),
+      actividad_economica: v('facEmAct'),
+      subtitulo: v('facEmSub'),
+      mensaje_pie: v('facEmPie'),
+      pie_secundario: v('facEmPie2'),
+      porcentaje: v('facIva'),
+      activo: document.getElementById('facActivo')?.value === '1'
+    };
+
+    if (!body.nombre_comercial) {
+      this.showMessage('configMsg', 'El nombre comercial es obligatorio.', 'error');
+      return;
+    }
+    const pct = parseFloat(body.porcentaje);
+    if (isNaN(pct) || pct < 0 || pct > 100) {
+      this.showMessage('configMsg', 'La tarifa de IVA debe estar entre 0 y 100.', 'error');
+      return;
+    }
+
+    try {
+      const res = await apiPut('/facturacion/config', body);
+      // Se refresca EN SITIO: `cargarConfiguracion()` reescribe todo el
+      // contenedor y borraría el mensaje de confirmación antes de que el
+      // usuario llegara a leerlo. Solo cambian los campos que el backend
+      // normaliza (el NIT pierde sus puntos).
+      const nuevo = await apiGet('/facturacion/config').catch(() => null);
+      if (nuevo) {
+        const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ''; };
+        set('facEmNit', nuevo.empresa?.nit);
+        set('facEmDv', nuevo.empresa?.dv);
+        set('facIva', String(nuevo.porcentaje ?? 19));
+        const combo = document.getElementById('facActivo');
+        if (combo) combo.value = nuevo.activo ? '1' : '0';
+      }
+      // El encabezado de respaldo de js/ticket.js vive en el navegador:
+      // se refresca para que el próximo comprobante ya salga con los datos
+      // nuevos aunque el pedido no traiga `empresa`.
+      if (window.Ticket) {
+        const cfg = Ticket.config;
+        if (body.nombre_comercial) cfg.nombreNegocio = body.nombre_comercial;
+        cfg.subtitulo = body.subtitulo;
+        cfg.nit = body.nit ? `NIT: ${Ticket.fmtId(body.nit, body.dv)}` : cfg.nit;
+        cfg.direccion = body.direccion;
+        cfg.telefono = body.telefono ? `Tel: ${body.telefono}` : cfg.telefono;
+        cfg.mensajePie = body.mensaje_pie;
+        cfg.pieSecundario = body.pie_secundario;
+      }
+      this.showMessage('configMsg', res.mensaje || 'Configuración fiscal guardada', 'success');
+    } catch (err) {
+      this.showMessage('configMsg', 'Error guardando: ' + err.message, 'error');
+    }
+  },
 
   crearColaborador() {
     const username = document.getElementById('newUserUsername')?.value?.trim();
@@ -272,6 +382,7 @@ if (typeof AppEventRouter !== 'undefined') {
     'desactivar-usuario': ({ button }) => App.desactivarUsuario(button.dataset.userid),
     'reactivar-usuario': ({ button }) => App.reactivarUsuario(button.dataset.userid),
     'filtrar-auditoria': () => App.filtrarAuditoria(),
+    'guardar-facturacion': () => App.guardarConfigFacturacion(),
     'export-excel-auditoria': () => App.exportarExcelAuditoria(),
     'abrir-limpieza': () => App.abrirLimpieza(),
     'ejecutar-limpieza': () => App.ejecutarLimpieza(),

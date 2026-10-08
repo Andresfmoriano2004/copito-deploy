@@ -3,7 +3,11 @@
 // Se carga DESPUÉS de js/app.js y extiende la fachada global App.
 Object.assign(App, {
 
-  mostrarModalPago({ total, titulo, onConfirm, showCambio, detalleIds }) {
+  // `clienteFiscal` (opcional) pide los datos del adquirente para el
+  // comprobante. Solo lo pasan los flujos de CIERRE TOTAL — que son los que
+  // emiten factura (v9); un abono o un pago por ítem no factura y no debe
+  // preguntar por el NIT. Se recibe como objeto ({} = sin datos precargados).
+  mostrarModalPago({ total, titulo, onConfirm, showCambio, detalleIds, clienteFiscal }) {
     this.cerrarModal();
     const modal = document.createElement('div');
     modal.className = 'modal-backdrop';
@@ -46,12 +50,50 @@ Object.assign(App, {
       </div>
     ` : '';
 
+    // ── ④ Datos del adquirente ────────────────────────────────────────
+    const v0 = (k) => (clienteFiscal && clienteFiscal[k]) ? clienteFiscal[k] : '';
+    const facHtml = clienteFiscal ? `
+      <div style="margin-top:15px;padding-top:14px;border-top:1px dashed var(--primary-border);">
+        <div style="font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+          🧾 Factura a nombre de <span style="font-weight:400;font-size:0.75rem;color:var(--text-muted);">(opcional)</span>
+        </div>
+        <div class="form-group" style="margin-bottom:9px;">
+          <label for="facNombre" style="font-size:0.78rem;color:var(--text-muted);">Nombre / Razón social</label>
+          <input id="facNombre" type="text" maxlength="200" autocomplete="off"
+            value="${this.safeText(v0('cliente'))}" placeholder="Si lo deja vacío: consumidor final"
+            style="width:100%;padding:9px;border:2px solid var(--primary-border);border-radius:8px;">
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:9px;">
+          <div style="flex:1;">
+            <label for="facNit" style="font-size:0.78rem;color:var(--text-muted);">NIT o cédula</label>
+            <input id="facNit" type="text" maxlength="15" inputmode="numeric" autocomplete="off"
+              value="${this.safeText(v0('nit'))}" placeholder="1234567890"
+              style="width:100%;padding:9px;border:2px solid var(--primary-border);border-radius:8px;">
+          </div>
+          <div style="width:76px;">
+            <label for="facDv" style="font-size:0.78rem;color:var(--text-muted);">DV</label>
+            <input id="facDv" type="text" maxlength="2" inputmode="numeric" autocomplete="off"
+              value="${this.safeText(v0('dv'))}" placeholder="—"
+              style="width:100%;padding:9px;border:2px solid var(--primary-border);border-radius:8px;text-align:center;">
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:4px;">
+          <label for="facDireccion" style="font-size:0.78rem;color:var(--text-muted);">Dirección</label>
+          <input id="facDireccion" type="text" maxlength="200" autocomplete="off"
+            value="${this.safeText(v0('direccion'))}" placeholder="Opcional"
+            style="width:100%;padding:9px;border:2px solid var(--primary-border);border-radius:8px;">
+        </div>
+        <div id="facMsg" style="font-size:0.75rem;min-height:15px;color:var(--danger);"></div>
+      </div>
+    ` : '';
+
     modal.innerHTML = `<div style="background:white;border-radius:12px;padding:30px;max-width:480px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
       <h3 style="color:var(--primary);margin-bottom:5px;">${this.safeText(titulo)}</h3>
       ${itemsInfoHtml}
       <div style="font-size:2rem;font-weight:800;color:var(--primary-dark);margin:10px 0 20px;padding:12px;background:var(--primary-bg);border-radius:12px;text-align:center;">${this.fmt(total)}</div>
       ${metodosHtml}
       ${reciboHtml}
+      ${facHtml}
       <hr style="border-color:var(--primary-border);margin:15px 0;">
       <div style="display:flex;justify-content:space-between;font-size:1.1rem;margin-bottom:8px;">
         <span>Asignado:</span><span id="pagoAsignado" style="font-weight:700;color:var(--danger);">${this.fmt(0)}</span>
@@ -160,9 +202,34 @@ Object.assign(App, {
         if (monto > 0) pagos.push({ metodoPago: m.id, monto });
       });
       if (!pagos.length) return;
+
+      // Los datos fiscales se validan ANTES de cerrar el modal: un NIT sin
+      // nombre no puede llegar al comprobante, y si se cierra el modal el
+      // cajero pierde lo que ya escribió.
+      let fiscal = null;
+      if (clienteFiscal) {
+        const val = id => (document.getElementById(id)?.value || '').trim();
+        const nombre = val('facNombre');
+        const nit = val('facNit').replace(/\D/g, '');
+        const dv = val('facDv').replace(/\D/g, '');
+        const direccion = val('facDireccion');
+        const falla = t => {
+          const m = document.getElementById('facMsg');
+          if (m) m.textContent = '⚠️ ' + t;
+        };
+        if (nit && !nombre) return falla('Si factura con NIT/C.C., escriba también el nombre.');
+        if (dv.length > 1) return falla('El DV debe tener un solo dígito.');
+        fiscal = {
+          cliente: nombre,
+          cliente_nit: nit,          // se normaliza a solo dígitos en el backend
+          cliente_dv: nit ? dv : '', // el DV solo aplica con NIT
+          cliente_direccion: direccion
+        };
+      }
+
       const cambio = reciboInput && !reciboInput.disabled ? Math.max(0, this.subMoney(Math.round(parseFloat(reciboInput.value) || 0), total)) : 0;
       modal.remove();
-      onConfirm(pagos, cambio);
+      onConfirm(pagos, cambio, fiscal);
     });
   },
 

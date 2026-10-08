@@ -198,24 +198,36 @@ const PedidosController = {
       App.mostrarModalPago({
         total: saldo,
         titulo: '🔒 Cerrar Pedido',
-        onConfirm: (pagos, cambio) => this.procesarCierre(pagos, cambio, propina, pedido.lugar)
+        // Cierre total → se emite comprobante, así que se piden los datos
+        // fiscales. Se precargan con lo que ya tenga el pedido.
+        clienteFiscal: {
+          cliente: pedido.cliente || '',
+          nit: pedido.clienteFiscal?.nit || '',
+          dv: pedido.clienteFiscal?.dv || '',
+          direccion: pedido.clienteFiscal?.direccion || ''
+        },
+        onConfirm: (pagos, cambio, fiscal) => this.procesarCierre(pagos, cambio, propina, pedido.lugar, fiscal)
       });
     } catch (err) {
       App.showMessage('mesaMsg', 'Error: ' + err.message, 'error');
     }
   },
 
-  async procesarCierre(pagos, cambio, propina = 0, lugar = null) {
+  async procesarCierre(pagos, cambio, propina = 0, lugar = null, fiscal = null) {
     const totalNum = pagos.reduce((s, p) => App.sumMoney(s, p.monto), 0);
     const metodosStr = pagos.map(p => `${p.metodoPago}: ${App.fmt(p.monto)}`).join(', ');
     let msg = `¿Confirmar cierre del pedido por ${App.fmt(totalNum)}?\n\n${metodosStr}\n\nSe descontará el stock.`;
     if (propina > 0) msg += `\n\nℹ️ La propina de ${App.fmt(propina)} se registrará después.`;
+    if (fiscal && fiscal.cliente) msg += `\n\n🧾 Factura a nombre de: ${fiscal.cliente}`;
     if (!confirm(msg)) return;
 
     const pedidoId = Store.get('pedidos.currentId');
     if (!pedidoId) return;
 
     try {
+      // Los datos del cliente van ANTES del cierre: al cerrar se emite el
+      // comprobante y el pedido queda inmutable (v9).
+      if (fiscal) await apiPut(`/pedidos/${pedidoId}`, fiscal);
       const res = await cerrarPedido(pedidoId, pagos, cambio);
       App.showMessage('mesaMsg', res.mensaje, 'success');
       Store.set('pedidos.currentId', null);

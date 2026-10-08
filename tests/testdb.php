@@ -39,6 +39,7 @@ function t_archivos_sql() {
     'migracion_v7_propinas_recetas_angie.sql',
     'migracion_v7a_materia_prima.sql',
     'migracion_v8_propinas_tabla.sql',
+    'migracion_v9_facturacion.sql',
   ];
   $rutas = [];
   foreach ($orden as $n) {
@@ -101,8 +102,11 @@ function t_db_crear() {
 
 /** Tablas que las pruebas rellenan: se vacían, no se destruye el esquema. */
 function t_tablas_volatiles() {
+  // Se vacían con FOREIGN_KEY_CHECKS=0, así que el orden no es crítico.
+  // `facturacion_consecutivos` NO va aquí: borrarla apagaría la numeración.
   return ['propina_distribucion', 'propinas', 'consumos_internos', 'caja_movimientos',
-          'caja', 'pagos', 'movimientos', 'detalle_pedido', 'pedidos', 'auditoria', 'productos'];
+          'caja', 'pagos', 'movimientos', 'facturas', 'detalle_pedido', 'pedidos',
+          'auditoria', 'productos'];
 }
 
 function t_db_limpiar() {
