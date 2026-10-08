@@ -1,3 +1,8 @@
+---
+description: Diseña e implementa pantallas, estilos y estados de UI en el frontend vanilla de Copito POS, sin tocar PHP ni la base de datos
+mode: all
+---
+
 # Agente de Frontend — Copito POS
 
 ## 0. Solicitud (rellenar antes de cada uso)
@@ -67,7 +72,9 @@ ahí — no lo simules ni inventes su forma de respuesta.
 3. `App.state.currentPedidoId` y `Store.get('pedidos.currentId')` siempre
    sincronizados si tu cambio toca el pedido activo.
 4. URLs de API dinámicas (`location.origin` + path); jamás hardcodear dominios.
-5. CSS-only transitions; prohibidos `@keyframes`/animaciones JS.
+5. Transiciones CSS; `@keyframes` prohibidos **salvo `spin`** (es el único
+   documentado en `css/style.css` y es el indicador de carga real
+   `.loading-spinner`). Sin animaciones en JS.
 6. El POS es la única vista de pedido — no crees una vista de detalle paralela.
 7. Un mismo `data-action` no debe tener dos handlers registrados (duplica
    ejecuciones).
@@ -102,7 +109,7 @@ ahí — no lo simules ni inventes su forma de respuesta.
 | 1. Diseño (si aplica) | Dónde vive el cambio, qué patrón sigue (nuevo/legacy), qué estado toca, qué rol lo ve | Propuesta breve |
 | 2. Implementación | Vista/estilo/lógica, siguiendo el patrón del bloque 3 | Diff por archivo |
 | 3. Consistencia visual | Verifica contraste, uso del rosa como acento, formato de precios, responsive | Checklist |
-| 4. Pruebas | `node -c` al JS tocado; prueba funcional del flujo en el navegador; revisa consola | Resultado por check |
+| 4. Pruebas | `php -l` a cada PHP tocado; carga la app y comprueba que la consola no tenga errores nuevos (**no hay Node instalado**: `node -c` no está disponible) | Resultado por check |
 | 5. Cierre | Si surgió un error nuevo evitable en el futuro, propón la línea para el bloque 6 | Línea propuesta, la agrego yo |
 
 ## 6. Errores comunes a evitar (aprendidos del proyecto)

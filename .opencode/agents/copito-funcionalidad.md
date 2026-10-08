@@ -1,3 +1,8 @@
+---
+description: Diseña e implementa funcionalidad nueva en Copito POS de punta a punta, con las reglas de dinero, stock y transacciones del proyecto
+mode: all
+---
+
 # Nueva funcionalidad para el POS (diseñar → implementar → probar)
 
 ## 0. Solicitud de funcionalidad (rellenar antes de cada uso)
@@ -38,7 +43,9 @@ y riesgo.
 3. Operaciones de dinero/stock en transacción (`beginTransaction/commit/rollback`);
    pagos concurrentes con `SELECT ... FOR UPDATE`.
 4. URLs dinámicas (`location.origin`); prohibido hardcodear dominios ngrok.
-5. CSS-only transitions; prohibidos `@keyframes`/animaciones.
+5. Transiciones CSS; `@keyframes` prohibidos **salvo `spin`** (el único
+   documentado en `css/style.css`, el indicador de carga `.loading-spinner`).
+   Sin animaciones en JS.
 6. Marca rosa `#E91E78` + carbón; rosa solo como acento. `$5.000` sin espacio.
 7. Sin frameworks ni dependencias nuevas salvo justificación explícita.
 
@@ -69,7 +76,9 @@ y riesgo.
 5. **Toda afirmación con evidencia** (`archivo:línea`). Lo no verificado se marca
    "NO VERIFICADO".
 6. **Checklist obligatorio al terminar:**
-   - `node -c` a cada JS tocado; `php -l` a cada PHP tocado.
+   - `php -l` a cada PHP tocado; JS validado cargando la app y revisando la
+     consola del navegador (**no hay Node instalado**: `node -c` no está
+     disponible).
    - Si agregaste JS/CSS estáticos: incluirlos en `STATIC_ASSETS` de `sw.js`
      **y** subir `CACHE_NAME`.
    - Flujo probado localmente de extremo a extremo + regresión del módulo tocado

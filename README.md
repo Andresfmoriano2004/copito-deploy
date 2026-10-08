@@ -67,7 +67,9 @@ api/                        auth, dashboard, productos, movimientos, pedidos_*,
 api/shared/                 auth_middleware, payment_helpers, stock_helpers,
                             order_helpers, caja_helpers, jwt, audit, validate
 tests/                      run_all.php + suites (ver sección Tests)
-Agente/                     Prompts de auditoría/desarrollo (NO servible por HTTP)
+Agente/                     Índice de los agentes de trabajo (NO servible por HTTP)
+.opencode/agents/           Agentes de OpenCode: frontend, debug, funcionalidad,
+                            auditoría (NO servible por HTTP)
 sql/                        Esquema base + migraciones
 uploads/productos/          Imágenes runtime (hash, máx 2 MB, JPG/PNG/WEBP)
 ```
@@ -136,7 +138,7 @@ Tickets (Recibido/Cambio en efectivo, total intacto), Configuración.
 php tests/run_all.php
 ```
 
-**233 aserciones en 6 suites, todo en verde sobre una instalación limpia.**
+**234 aserciones en 6 suites, todo en verde sobre una instalación limpia.**
 
 | Suite | Cómo corre | Cubre |
 |---|---|---|
@@ -145,7 +147,7 @@ php tests/run_all.php
 | `test_caja.php` | igual | apertura única, INGRESO/EGRESO, resumen, cierre con diferencia, nada operable sin caja |
 | `test_facturacion.php` | igual | IVA desgranado desde precio con IVA incluido, emisión solo al cobrar el total, correlatividad sin huecos, pedido facturado inmutable, NIT del cliente, config del emisor, anulación, vista impresa |
 | `test_recetas_pasos.php` | igual | preparación paso a paso: orden de la comanda, reemplazo sin huecos, validaciones que **no** tocan la receta guardada, insumos intactos, un producto = una receta, cascada al borrar el producto, rol admin |
-| `test_seguridad.php` | Apache + BD real, solo lectura | bloqueos del `.htaccess`, autenticación, rol desde la BD, migración v8, imágenes de producto servidas desde `uploads/productos/` y sin ejecución de scripts |
+| `test_seguridad.php` | Apache + BD real, solo lectura | bloqueos del `.htaccess` (incluidos `.opencode/` y `Agente/`), autenticación, rol desde la BD, migración v8, imágenes de producto servidas desde `uploads/productos/` y sin ejecución de scripts |
 
 Las suites de dinero **no tocan la BD real**: `tests/testdb.php` crea
 `dpcoffee_test` (una sola vez, con `dpcoffee.sql` + migraciones v4→v10) y levanta
@@ -244,9 +246,9 @@ Aplicado por `sql/migracion_v10_recetas_pasos.sql`.
 
 ## Seguridad en el despliegue
 
-El `.htaccess` bloquea con **403**: `sql/`, `.git/`, `tests/`, `Agente/`,
-`docs/`, `README.md`, `router.php`, `.gitignore` y todo `.env|.sql|.log|.err`.
-Verificado por `tests/test_seguridad.php`.
+El `.htaccess` bloquea con **403**: `sql/`, `.git/`, `.opencode/`, `tests/`,
+`Agente/`, `docs/`, `README.md`, `router.php`, `.gitignore` y todo
+`.env|.sql|.log|.err`. Verificado por `tests/test_seguridad.php`.
 
 Errores internos **nunca** se devuelven al cliente: se guardan en el log de
 Apache (`error_log`) y el cliente recibe un mensaje genérico.

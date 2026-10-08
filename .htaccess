@@ -37,6 +37,9 @@ DirectorySlash Off
   # .git contiene el historial completo; tests/ tiene scripts con exec(); Agente/
   # expone los prompts de auditoría.
   RewriteRule ^\.git(/|$) - [F,L]
+  # .opencode/ guarda los agentes de OpenCode: describen el modelo de seguridad,
+  # los endpoints y las convenciones del POS. Igual que .git, es material interno.
+  RewriteRule ^\.opencode(/|$) - [F,L]
   RewriteRule ^(tests|Agente|docs)(/|$) - [F,L]
   RewriteRule ^(README\.md|router\.php|\.gitignore)$ - [F,L]
 

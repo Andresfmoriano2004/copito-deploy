@@ -1,6 +1,6 @@
 # ☕ Copito POS — Lista de verificación manual
 
-**233 aserciones ya están automatizadas** en `php tests/run_all.php` (precios,
+**234 aserciones ya están automatizadas** en `php tests/run_all.php` (precios,
 pago parcial, reversión de stock, arqueo, facturación, recetas de preparación y
 superficie pública). Aquí solo queda
 lo que la suite no puede comprobar: lo que depende de la interfaz, de un usuario
@@ -152,8 +152,15 @@ mientras `index.html` y `sw.js` siguen en 200.
       (se listan como pendientes en `tests/run_all.php`). La infraestructura ya
       está resuelta en `tests/testdb.php` (BD aislada + `php -S` propio), así que
       escribirlas es cuestión de casos de prueba.
-- [ ] `Agente/*.md`: promover los prompts a agentes reales en `.opencode/agent/`
-      y añadir un `Agente/README.md` índice.
+- [x] `Agente/*.md` → agentes reales en `.opencode/agents/` (la ruta documentada
+      es `agents`, en plural). Los cuatro con `mode: all`, y `copito-auditoria`
+      con permisos que le impiden editar fuera de `docs/` y le obligan a pedir
+      aprobación para cada comando de shell. `Agente/README.md` queda como índice.
+      De paso: **`.opencode/` no estaba en el `.htaccess`**, así que los agentes
+      se habrían servido por HTTP describiendo el modelo de seguridad; ya está en
+      la lista de rutas bloqueadas. Al migrar se corrigieron dos líneas de los
+      prompts que ya no eran ciertas (`node -c` no existe aquí y la regla de
+      `@keyframes` ahora admite `spin`).
 - [ ] Migraciones `v5`, `v6`, `v7` no son idempotentes: re-ejecutarlas rompe.
       `v4`, `v7a` y `v8` sí se pueden correr varias veces.
       **`v2` y `v3` ya no aplican en instalación nueva**: están consolidadas en
