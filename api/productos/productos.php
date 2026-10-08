@@ -159,7 +159,7 @@ if ($method === 'POST' && preg_match('#^productos/(.+)/imagen$#', $path, $m)) {
   $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
   $extensiones = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
   if (!isset($extensiones[$mime])) jsonError('Formato no permitido. Use JPG, PNG o WEBP');
-  $dir = dirname(__DIR__) . '/uploads/productos';
+  $dir = dirname(__DIR__, 2) . '/uploads/productos';
   if (!is_dir($dir) && !mkdir($dir, 0755, true)) jsonError('No se pudo preparar el almacenamiento', 500);
   $nombre = hash('sha256', $codigo . microtime(true)) . '.' . $extensiones[$mime];
   if (!move_uploaded_file($file['tmp_name'], $dir . '/' . $nombre)) jsonError('No se pudo guardar la imagen', 500);

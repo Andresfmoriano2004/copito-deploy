@@ -76,4 +76,27 @@ t_ok('token de usuario inexistente -> 401', $code === 401, "devolvió HTTP $code
 [$code] = t_url('/api/propinas', t_token());
 t_ok('GET /api/propinas -> 200 (tabla propinas creada por la v8)', $code === 200, "devolvió HTTP $code");
 
+// ─── 6. Imágenes de producto: carpeta servible y sin scripts ─────────────────
+// Regresión del bug de 4b23b33: la subida escribía en api/uploads/productos/
+// (donde .htaccess reescribe /api/* -> api.php y devuelve 404) mientras
+// imagen_url apuntaba a uploads/productos/. El <img onerror="this.remove()">
+// se tragaba el fallo y las fotos nunca se veían.
+[$code, $body] = t_url('/uploads/productos/5b8a6ae94fdabe437d7c7a6ed891fb1d998b03264a072d0e591844eac64f3d9d.png');
+$esHtml = isset($body['_raw']) && stripos($body['_raw'], '<!doctype') === 0;
+t_ok('GET /uploads/productos/<foto> sirve el binario', $code === 200 && !$esHtml,
+     $esHtml ? 'devolvió el index.html del fallback SPA (la foto no existe en esa ruta)' : "devolvió HTTP $code");
+
+// Sin esto, un .php subido por el endpoint se ejecutaría: la extensión la decide
+// el servidor, pero esto es la defensa por si acaso.
+[$code] = t_url('/uploads/productos/x.php');
+t_ok('/uploads/productos/x.php -> 403 (no se ejecutan scripts en uploads)', $code === 403, "devolvió HTTP $code");
+[$code] = t_url('/uploads/productos/.htaccess');
+t_ok('/uploads/productos/.htaccess no expuesto', $code === 403, "devolvió HTTP $code");
+
+// Y que la ruta de subida siga apuntando a la carpeta que sí se sirve.
+$src = file_get_contents(__DIR__ . '/../api/productos/productos.php');
+t_ok('productos.php sube a uploads/productos/ de la raíz',
+     strpos($src, "dirname(__DIR__, 2) . '/uploads/productos'") !== false,
+     'la ruta de subida ya no es dirname(__DIR__, 2) — revisa api/productos/productos.php');
+
 exit(t_summary('seguridad') ? 1 : 0);

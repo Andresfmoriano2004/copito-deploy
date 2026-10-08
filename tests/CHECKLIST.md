@@ -1,7 +1,8 @@
 # ☕ Copito POS — Lista de verificación manual
 
-**77 aserciones ya están automatizadas** en `php tests/run_all.php` (precios,
-pago parcial, reversión de stock, arqueo y superficie pública). Aquí solo queda
+**233 aserciones ya están automatizadas** en `php tests/run_all.php` (precios,
+pago parcial, reversión de stock, arqueo, facturación, recetas de preparación y
+superficie pública). Aquí solo queda
 lo que la suite no puede comprobar: lo que depende de la interfaz, de un usuario
 `vendedor` real o de dos personas a la vez.
 

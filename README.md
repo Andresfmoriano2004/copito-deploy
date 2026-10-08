@@ -136,7 +136,7 @@ Tickets (Recibido/Cambio en efectivo, total intacto), Configuración.
 php tests/run_all.php
 ```
 
-**229 aserciones en 6 suites, todo en verde sobre una instalación limpia.**
+**233 aserciones en 6 suites, todo en verde sobre una instalación limpia.**
 
 | Suite | Cómo corre | Cubre |
 |---|---|---|
@@ -145,7 +145,7 @@ php tests/run_all.php
 | `test_caja.php` | igual | apertura única, INGRESO/EGRESO, resumen, cierre con diferencia, nada operable sin caja |
 | `test_facturacion.php` | igual | IVA desgranado desde precio con IVA incluido, emisión solo al cobrar el total, correlatividad sin huecos, pedido facturado inmutable, NIT del cliente, config del emisor, anulación, vista impresa |
 | `test_recetas_pasos.php` | igual | preparación paso a paso: orden de la comanda, reemplazo sin huecos, validaciones que **no** tocan la receta guardada, insumos intactos, un producto = una receta, cascada al borrar el producto, rol admin |
-| `test_seguridad.php` | Apache + BD real, solo lectura | bloqueos del `.htaccess`, autenticación, rol desde la BD, migración v8 |
+| `test_seguridad.php` | Apache + BD real, solo lectura | bloqueos del `.htaccess`, autenticación, rol desde la BD, migración v8, imágenes de producto servidas desde `uploads/productos/` y sin ejecución de scripts |
 
 Las suites de dinero **no tocan la BD real**: `tests/testdb.php` crea
 `dpcoffee_test` (una sola vez, con `dpcoffee.sql` + migraciones v4→v10) y levanta
