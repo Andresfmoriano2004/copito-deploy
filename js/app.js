@@ -99,7 +99,12 @@ const App = {
 
   showTab(tab) {
     this.state.currentTab = tab;
-    try { localStorage.setItem('copito_tab', tab); } catch(e) {}
+    try { localStorage.setItem('copito_tab', tab); } catch(e) {
+      // No es bloqueante (solo se pierde la pestaña recordada), pero no debe
+      // quedar en silencio: casi siempre es cuota llena o modo privado y afecta
+      // también a lo que sí persiste.
+      console.warn('[copito] No se pudo recordar la pestaña "' + tab + '": ' + e.message);
+    }
 
     if (typeof Router !== 'undefined') {
       Router.activate(tab);

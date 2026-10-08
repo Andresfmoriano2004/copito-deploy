@@ -153,7 +153,12 @@ Object.assign(App, {
         const prods = await apiGet('/productos');
         const found = prods.find(p => p.nombre.toLowerCase() === prodInput.toLowerCase());
         if (found) codigo = found.codigo;
-      } catch(e) {}
+      } catch(e) {
+        // Avisar que la consulta falló, no que el producto no existe: si el
+        // catálogo no se pudo leer, "Producto no encontrado" sería mentira.
+        this.showMessage('angieMsg2', 'No pude consultar el catálogo de productos: ' + e.message, 'error');
+        return;
+      }
     }
     if (!codigo) {
       this.showMessage('angieMsg2', 'Producto no encontrado. Seleccione de la lista.', 'error');

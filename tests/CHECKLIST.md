@@ -160,10 +160,11 @@ mientras `index.html` y `sw.js` siguen en 200.
       `sql/dpcoffee.sql`, así que ejecutarlas después falla con *Duplicate column
       name*. Verificado empíricamente — `dpcoffee.sql` + `v4→v8` deja los 19
       tablas esperados (`login_intentos` se crea en runtime).
-- [ ] Bloques `catch` vacíos en JS que siguen sin reportar nada:
-      `js/app.js:102` (localStorage), `js/modules/angie.js:156`,
-      `js/modules/pos_order.js:71` y `:394` (este último borra items del pedido),
-      `js/controllers/pos_controller.js:56`.
+- [x] Bloques `catch` vacíos en JS — los cinco cerrados: `js/app.js:102`
+      (localStorage → `console.warn`, no es bloqueante), `js/modules/angie.js:156`
+      (avisa que la consulta del catálogo falló en vez de decir "producto no
+      encontrado"), `js/modules/pos_order.js:71` y `:394` (carga del pedido y
+      borrado de ítems: ambos abortan) y `js/controllers/pos_controller.js:56`.
       Los dos críticos (`_posSyncCart` y `_posCancelar`) ya sí avisan.
 - [ ] 7 `@keyframes` en CSS, prohibidos por las reglas del proyecto — pero
       incluyen el spinner, que **es** funcional. Decidir si se relaja la regla o

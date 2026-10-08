@@ -53,7 +53,12 @@ const PosController = {
             Store.set('pos.splitMode', true);
           }
         }
-      } catch (e) { /* ignore */ }
+      } catch (e) {
+        // No seguir: un carrito vacío para un pedido que sí tiene ítems haría
+        // que el cajero los volviera a agregar y se cobraran dos veces.
+        container.innerHTML = `<div class="pos-layout"><div class="pos-left" style="display:flex;align-items:center;justify-content:center;color:var(--danger);">No pude cargar el pedido: ${App.escapeHtml(e.message)}</div></div>`;
+        return;
+      }
     }
 
     container.innerHTML = PosView.layout({ pedidoId, ...Store.get('pos.pedidoData') });
