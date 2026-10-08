@@ -216,6 +216,14 @@ if ($method === 'POST' && preg_match('#^pedidos/(.+)/items$#', $path, $m)) {
     $stmt->execute([$id, $codigo, $nombre, $cantidad, $precio, $subtotal, $notas, $cuenta,
                     $pRow['unidad'] ?: 'Und', $pRow['tipo_item'] ?: 'Bien',
                     $imp['pct'], $imp['base'], $imp['iva']]);
+    // El id se captura YA, antes de cualquier otra escritura. Tres cosas lo
+    // pisaban y el POS recibía siempre `detalleId: 0` (y con 0,
+    // `res.detalleId || res.id` en pos_controller.js caía a undefined, así que
+    // el carrito nunca se marcaba sincronizado y reintentaba el sync):
+    //   · updatePedidoTotal() hace un UPDATE,
+    //   · auditLog() INSERTA en `auditoria` y ese id reemplaza al anterior,
+    //   · commit() deja LAST_INSERT_ID() en 0 en MariaDB 10.4.
+    $detalleId = (int)$pdo->lastInsertId();
     updatePedidoTotal($pdo, $id);
 
     auditLog($authUser, 'AGREGAR_PRODUCTO_PEDIDO', $id, null, [
@@ -227,7 +235,7 @@ if ($method === 'POST' && preg_match('#^pedidos/(.+)/items$#', $path, $m)) {
     ]);
 
     $pdo->commit();
-    jsonResponse(['success' => true, 'mensaje' => 'Item agregado al pedido', 'detalleId' => (int)$pdo->lastInsertId()]);
+    jsonResponse(['success' => true, 'mensaje' => 'Item agregado al pedido', 'detalleId' => $detalleId]);
   } catch (Exception $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
     jsonError('No se pudo agregar el item', 500);
