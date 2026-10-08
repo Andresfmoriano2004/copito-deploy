@@ -1,10 +1,10 @@
 # ☕ Copito POS — Lista de verificación manual
 
-**234 aserciones ya están automatizadas** en `php tests/run_all.php` (precios,
-pago parcial, reversión de stock, arqueo, facturación, recetas de preparación y
-superficie pública). Aquí solo queda
-lo que la suite no puede comprobar: lo que depende de la interfaz, de un usuario
-`vendedor` real o de dos personas a la vez.
+**338 aserciones ya están automatizadas** en `php tests/run_all.php` (precios,
+pago parcial, reversión de stock, arqueo, inventario, límite de intentos de login,
+cuentas partidas, facturación, recetas de preparación y superficie pública).
+Aquí solo queda lo que la suite no puede comprobar: lo que depende de la
+interfaz, de un usuario `vendedor` real o de dos personas a la vez.
 
 Las filas marcadas 🤖 tienen su equivalente en código (`tests/<suite>.php`) y ya
 pasan; quedan como referencia de qué se probó y qué no.
@@ -148,10 +148,18 @@ mientras `index.html` y `sw.js` siguen en 200.
       (47 aserciones) sobre `dpcoffee_test`, con guardas de aislamiento.
 - [x] README actualizado: 20 tablas, 13 pestañas, `.env` obligatorio y el
       orden **real** de migraciones.
-- [ ] Suites `test_inventario`, `test_auth_ratelimit` y `test_split_bill`
-      (se listan como pendientes en `tests/run_all.php`). La infraestructura ya
-      está resuelta en `tests/testdb.php` (BD aislada + `php -S` propio), así que
-      escribirlas es cuestión de casos de prueba.
+- [x] Suites `test_inventario` (34), `test_auth_ratelimit` (27) y
+      `test_split_bill` (43) — escritas, en `run_all.php` y en verde sobre
+      `dpcoffee_test`. Al escribirlas destaparon **dos bugs reales**:
+      1. `api/inventario/materia_prima.php:36` declara `GET materia-prima/(.+)`
+         **antes** que `GET materia-prima/historial/(.+)`, así que la ruta
+         genérica enganchaba el historial y devolvía siempre *404 Materia prima
+         no encontrada*: el modal de historial de la pestaña de inventario nunca
+         cargó. Corregido con `([^/]+)`.
+      2. `api/auth/auth.php:26` seleccionaba solo `intentos, bloqueado_hasta`,
+         **sin `ultimo_intento`**. El `?? 'now'` de la ventana deslizante caía en
+         `now` y `$ultimoTs < time() - 900` nunca se cumplía: los fallos viejos
+         se acumulaban para siempre y esa rama era código muerto. Corregido.
 - [x] `Agente/*.md` → agentes reales en `.opencode/agents/` (la ruta documentada
       es `agents`, en plural). Los cuatro con `mode: all`, y `copito-auditoria`
       con permisos que le impiden editar fuera de `docs/` y le obligan a pedir

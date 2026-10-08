@@ -23,7 +23,11 @@ if ($method === 'POST' && $path === 'auth/login') {
       bloqueado_hasta DATETIME NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-    $stmtRate = $pdo->prepare("SELECT intentos, bloqueado_hasta FROM login_intentos WHERE ip = ?");
+    // OJO: hay que pedir `ultimo_intento`. Sin esa columna en el SELECT,
+    // `$rateInfo['ultimo_intento']` no existe y el `?? 'now'` de la ventana
+    // deslizante cae en `now`: `$ultimoTs < time() - 900` nunca se cumple y
+    // los fallos viejos se acumulaban para siempre.
+    $stmtRate = $pdo->prepare("SELECT intentos, ultimo_intento, bloqueado_hasta FROM login_intentos WHERE ip = ?");
     $stmtRate->execute([$ip]);
     $rateInfo = $stmtRate->fetch();
 

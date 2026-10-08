@@ -146,13 +146,16 @@ Tickets (Recibido/Cambio en efectivo, total intacto), Configuración.
 php tests/run_all.php
 ```
 
-**234 aserciones en 6 suites, todo en verde sobre una instalación limpia.**
+**338 aserciones en 9 suites, todo en verde sobre una instalación limpia.**
 
 | Suite | Cómo corre | Cubre |
 |---|---|---|
 | `test_precios.php` | unidad pura, sin BD ni red | los 13 casos de la política de precios |
 | `test_pagos.php` | BD aislada `dpcoffee_test` + `php -S` propio | cobro sin caja (409), pago parcial vs. stock, reversión al cancelar |
 | `test_caja.php` | igual | apertura única, INGRESO/EGRESO, resumen, cierre con diferencia, nada operable sin caja |
+| `test_inventario.php` | igual | stock = suma de movimientos, nada queda en negativo, movimiento rechazado sin rastro, historial de materia prima (regresión del 404 que lo sombreaba), borrar MP con movimientos (409) |
+| `test_auth_ratelimit.php` | igual | 5 fallos → bloqueo de 15 min (429), la IP bloqueada no entra ni con la contraseña buena, vencimiento del bloqueo, ventana deslizante de 15 min, mensajes que no filtran si el usuario existe, token de un usuario desactivado |
+| `test_split_bill.php` | igual | cada cuenta se cierra con su saldo, el stock baja solo al saldar la cuenta que lo contiene, cobro doble (409), pagos de más (400), suma de pagos = total del pedido |
 | `test_facturacion.php` | igual | IVA desgranado desde precio con IVA incluido, emisión solo al cobrar el total, correlatividad sin huecos, pedido facturado inmutable, NIT del cliente, config del emisor, anulación, vista impresa |
 | `test_recetas_pasos.php` | igual | preparación paso a paso: orden de la comanda, reemplazo sin huecos, validaciones que **no** tocan la receta guardada, insumos intactos, un producto = una receta, cascada al borrar el producto, rol admin |
 | `test_seguridad.php` | Apache + BD real, solo lectura | bloqueos del `.htaccess` (incluidos `.opencode/` y `Agente/`), autenticación, rol desde la BD, migración v8, imágenes de producto servidas desde `uploads/productos/` y sin ejecución de scripts |
@@ -160,12 +163,9 @@ php tests/run_all.php
 Las suites de dinero **no tocan la BD real**: `tests/testdb.php` crea
 `dpcoffee_test` (una sola vez, con `dpcoffee.sql` + migraciones v4→v10) y levanta
 un `php -S 127.0.0.1:8099` con `DB_NAME` propio, que se detiene al terminar.
-Cada corrida vacía las tablas volátiles de esa BD. Al final de las dos suites hay
-aserciones de guardia que comprueban que `dpcoffee` sigue con 0 pedidos,
+Cada corrida vacía las tablas volátiles de esa BD. Casi todas las suites terminan
+con aserciones de guardia que comprueban que `dpcoffee` sigue con 0 pedidos,
 0 movimientos y 0 cajas de prueba.
-
-Quedan pendientes `test_inventario`, `test_auth_ratelimit` y `test_split_bill`;
-lo que falta se documenta en `tests/CHECKLIST.md`.
 
 Los `test_*.php` de la raíz siguen ignorados por git; los de `tests/` **sí** se
 commitean (`!tests/test_*.php` en `.gitignore`).
