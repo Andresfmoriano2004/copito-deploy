@@ -184,12 +184,29 @@ Object.assign(App, {
 
 
   verDetalleProducto(codigo) {
-    obtenerProducto(codigo).then(prod => {
+    // La preparación (v10) se trae aparte: esta vista puede abrirse sin haber
+    // visitado nunca la pestaña Recetas, y la receta debe salir igual.
+    Promise.all([
+      obtenerProducto(codigo),
+      apiGet('/receta-pasos/' + encodeURIComponent(codigo)).catch(() => [])
+    ]).then(([prod, pasos]) => {
       this.cerrarModal();
+      const pasosHtml = (Array.isArray(pasos) && pasos.length) ? `
+        <div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--border);">
+          <div style="font-weight:700;color:var(--primary);margin-bottom:8px;">📖 Preparación</div>
+          <ol style="margin:0;padding-left:20px;">${pasos.map(p => `
+            <li style="margin-bottom:8px;">
+              ${p.titulo ? `<strong>${this.escapeHtml(p.titulo)}</strong>` : ''}
+              ${(p.tiempoMin || p.equipo)
+                ? `<span style="color:var(--text-muted);font-size:0.85rem;">${p.tiempoMin ? ` · ${p.tiempoMin} min` : ''}${p.equipo ? ` · ${this.escapeHtml(p.equipo)}` : ''}</span>`
+                : ''}
+              <br><span>${this.escapeHtml(p.instruccion)}</span>
+            </li>`).join('')}</ol>
+        </div>` : '';
       const modal = document.createElement('div');
       modal.className = 'modal-backdrop';
       modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:2000;font-family:var(--font);';
-      modal.innerHTML = `<div style="background:white;border-radius:12px;padding:30px;max-width:450px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);max-height:calc(100vh - 40px);max-height:calc(100dvh - 40px);overflow-y:auto;">
+      modal.innerHTML = `<div style="background:white;border-radius:12px;padding:30px;max-width:${pasosHtml ? 560 : 450}px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);max-height:calc(100vh - 40px);max-height:calc(100dvh - 40px);overflow-y:auto;">
         <h3 style="color:var(--primary);margin-bottom:15px;">${this.escapeHtml(prod.nombre)}</h3>
         <div style="text-align:center;margin-bottom:15px;">${prod.imagenUrl ? `<img src="${this.escapeHtml(imgUrl(prod.imagenUrl))}" alt="Imagen de ${this.escapeHtml(prod.nombre)}" style="max-width:100%;max-height:220px;border-radius:10px;object-fit:cover;" onerror="this.remove()">` : '<div style="font-size:2rem;display:flex;align-items:center;justify-content:center;height:80px;color:var(--text-muted);"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 15l5-5 4 4 5-7 4 8"/></svg></div><div style="color:var(--text-muted);font-size:0.85rem;">Sin imagen</div>'}</div>
         <table style="width:100%;"><tr><td style="padding:6px 0;color:var(--text-muted);">Código</td><td style="padding:6px 0;font-weight:600;">${this.escapeHtml(prod.codigo)}</td></tr>
@@ -197,6 +214,7 @@ Object.assign(App, {
         <tr><td style="padding:6px 0;color:var(--text-muted);">Grupo</td><td style="padding:6px 0;">${this.escapeHtml(prod.grupo)}</td></tr>
         <tr><td style="padding:6px 0;color:var(--text-muted);">Stock Mínimo</td><td style="padding:6px 0;">${prod.stockMinimo}</td></tr>
         <tr><td style="padding:6px 0;color:var(--text-muted);">Precio</td><td style="padding:6px 0;font-weight:600;">${this.fmt(prod.precio)}</td></tr></table>
+        ${pasosHtml}
         <div class="actions" style="margin-bottom:0;">
           <button class="btn btn-warning" data-action="edit-product" data-codigo="${this.escapeHtml(prod.codigo)}" type="button">✏️ Editar</button>
           <button class="btn btn-secondary" data-action="cerrar-modal" type="button">Cerrar</button>

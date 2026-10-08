@@ -9,7 +9,7 @@ Vanilla **PHP + MySQL + JS**, sin frameworks ni build. ~350 KB.
 |---|---|
 | Frontend | HTML + CSS + JS vanilla (módulos por `<script>`, fachada global `App`) |
 | Backend | PHP 8.1/8.2 vanilla, PDO, JWT propio (HMAC-SHA256, 24 h) |
-| DB | MySQL/MariaDB, 23 tablas + migraciones |
+| DB | MySQL/MariaDB, 24 tablas + migraciones |
 | PWA | `manifest.json` + `sw.js` (Network-First `/api`, Cache-First estáticos) |
 | Moneda / TZ | `$ COP` · `America/Bogota` |
 
@@ -96,8 +96,9 @@ En una instalación nueva se aplican **después, solo desde la v4**:
 | `sql/migracion_v7a_materia_prima.sql` | `materia_prima`, `movimientos_materia_prima`, `consumos_internos` | ✅ |
 | `sql/migracion_v8_propinas_tabla.sql` | tabla `propinas`, enum `PROPINA` en `caja_movimientos` | ✅ |
 | `sql/migracion_v9_facturacion.sql` | comprobante de venta ("Camino A"): tablas `facturas`, `facturacion_consecutivos`, `facturacion_series`; columnas fiscales en `productos`, `detalle_pedido` y `pedidos`; semillas de configuración fiscal | ✅ |
+| `sql/migracion_v10_recetas_pasos.sql` | tabla `receta_pasos`: procedimiento de preparación paso a paso por producto | ✅ |
 
-Total: **23 tablas** (`login_intentos` se crea en runtime al primer login).
+Total: **24 tablas** (`login_intentos` se crea en runtime al primer login).
 Todas en `utf8mb4_general_ci`.
 
 ## Uso (roles)
@@ -112,9 +113,10 @@ El rol se lee **siempre de la BD**, no del JWT: degradar a un admin surte efecto
 de inmediato en vez de esperar a que venza el token (24 h).
 
 Módulos: Dashboard (1 llamada agregada), Productos (paginado 50/pág), Movimientos
-(filtros + chips Ingreso/Salida), Proveedores, Inventario, Materia Prima, Recetas,
+(filtros + chips Ingreso/Salida), Proveedores, Inventario, Materia Prima,
+Recetas (insumos + preparación paso a paso),
 Angie, Reportes (más vendidos, semanal, Excel), Buscar, Mesas/Pedidos (split bill,
-abonos, pago por ítem, comanda), Caja (FISICO/BANCARIO, historial con bancario),
+abonos, pago por ítem, comanda con receta), Caja (FISICO/BANCARIO, historial con bancario),
 Tickets (Recibido/Cambio en efectivo, total intacto), Configuración.
 
 ## Reglas de negocio duras (verificadas)
@@ -134,7 +136,7 @@ Tickets (Recibido/Cambio en efectivo, total intacto), Configuración.
 php tests/run_all.php
 ```
 
-**172 aserciones en 5 suites, todo en verde sobre una instalación limpia.**
+**229 aserciones en 6 suites, todo en verde sobre una instalación limpia.**
 
 | Suite | Cómo corre | Cubre |
 |---|---|---|
@@ -142,10 +144,11 @@ php tests/run_all.php
 | `test_pagos.php` | BD aislada `dpcoffee_test` + `php -S` propio | cobro sin caja (409), pago parcial vs. stock, reversión al cancelar |
 | `test_caja.php` | igual | apertura única, INGRESO/EGRESO, resumen, cierre con diferencia, nada operable sin caja |
 | `test_facturacion.php` | igual | IVA desgranado desde precio con IVA incluido, emisión solo al cobrar el total, correlatividad sin huecos, pedido facturado inmutable, NIT del cliente, config del emisor, anulación, vista impresa |
+| `test_recetas_pasos.php` | igual | preparación paso a paso: orden de la comanda, reemplazo sin huecos, validaciones que **no** tocan la receta guardada, insumos intactos, un producto = una receta, cascada al borrar el producto, rol admin |
 | `test_seguridad.php` | Apache + BD real, solo lectura | bloqueos del `.htaccess`, autenticación, rol desde la BD, migración v8 |
 
 Las suites de dinero **no tocan la BD real**: `tests/testdb.php` crea
-`dpcoffee_test` (una sola vez, con `dpcoffee.sql` + migraciones v4→v9) y levanta
+`dpcoffee_test` (una sola vez, con `dpcoffee.sql` + migraciones v4→v10) y levanta
 un `php -S 127.0.0.1:8099` con `DB_NAME` propio, que se detiene al terminar.
 Cada corrida vacía las tablas volátiles de esa BD. Al final de las dos suites hay
 aserciones de guardia que comprueban que `dpcoffee` sigue con 0 pedidos,
@@ -168,6 +171,9 @@ GET  /api/productos[?q=&page=&limit=]      POST/PUT/DELETE /api/productos…
 GET  /api/grupos|unidades|proveedores     POST (DELETE requiere admin)
 GET  /api/movimientos[?page=]              POST /api/movimientos
 GET  /api/materia-prima|recetas|consumos-internos
+GET  /api/receta-pasos[?producto=|/{codigo}]     preparación paso a paso
+PUT  /api/receta-pasos/{codigo}                  reemplazar receta  (admin)
+DELETE /api/receta-pasos/{codigo}                borrar receta      (admin)
 GET  /api/pedidos/activos|historial[?page=]
 POST /api/pedidos | /{id}/items | /{id}/cerrar | /{id}/abonar | /{id}/pagar-item(s)
 PUT|DELETE /api/pedidos/items/{detalleId}
@@ -205,6 +211,36 @@ resolución DIAN, sin CUFE ni TrackID. Aplicado por `sql/migracion_v9_facturacio
 - Anular exige motivo, no libera el pedido ni reutiliza el número.
 - Los datos del adquirente se capturan en el modal de cobro; si no se llenan,
   el comprobante imprime **CONSUMIDOR FINAL**.
+
+## Recetas — preparación paso a paso
+
+La pestaña **Recetas** resuelve dos preguntas distintas y por eso son dos tablas:
+
+| Pregunta | Tabla | Migración |
+|---|---|---|
+| **¿Cuánto entra?** — insumo + cantidad por unidad (alimenta el costo) | `recetas` | v7a |
+| **¿Cómo se hace?** — procedimiento escrito, ordenado | `receta_pasos` | **v10** |
+
+La receta de un producto se guarda como una lista ordenada de pasos con
+`titulo`, `instruccion`, `tiempo_min` y `equipo` («Hornear · 5 min · Air Fryer»).
+**Un producto = una receta**: el `PUT` es de *reemplazo*, así que el orden que
+arma el editor es el orden que se imprime y no quedan huecos de numeración.
+
+Dónde se ve:
+
+- **Comanda de cocina** (`js/ticket.js`): debajo de cada producto salen sus
+  pasos numerados. La receta se pide una sola vez y viaja en `opciones.pasos`,
+  así que alternar recibo ↔ comanda no la vuelve a pedir; si la carga falla,
+  la comanda se imprime igual, sin receta.
+- **Detalle de producto** (`js/modules/productos.js`): bloque «📖 Preparación».
+- **Pestaña Recetas**: editor de pasos (agregar, reordenar ↑↓, eliminar).
+
+Escribe solo `admin` (`PUT`/`DELETE` → 403 para el resto); leer puede cualquier
+usuario autenticado, porque quien prepara necesita verla. Lo que no pasa la
+validación **no toca** la receta ya guardada: `jsonError` hace `exit`, así que
+la validación corre antes de abrir la transacción.
+
+Aplicado por `sql/migracion_v10_recetas_pasos.sql`.
 
 ## Seguridad en el despliegue
 

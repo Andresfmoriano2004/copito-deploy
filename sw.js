@@ -1,4 +1,4 @@
-const CACHE_NAME = 'copito-pos-v1.49';
+const CACHE_NAME = 'copito-pos-v1.50';
 const STATIC_ASSETS = [
   './',
   './index.html',

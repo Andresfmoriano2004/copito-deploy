@@ -153,10 +153,24 @@ const Ticket = {
       const cuentaBadge = it.cuenta ? `<span class="ticket-cuenta-tag">[Cta ${it.cuenta}]</span> ` : '';
 
       if (esComanda) {
+        // La receta del producto (v10) viaja en `opciones.pasos`, ya traída
+        // por mostrarModal(). Sin ella la comanda se imprime igual: la cocina
+        // no se queda sin ticket porque falle la carga de una receta.
+        const cod = it.codigo || it.codigo_producto || it.codigoProducto;
+        const receta = (cod && opciones.pasos && opciones.pasos[cod]) || [];
+        const pasosHtml = receta.length ? `
+            <div class="ticket-receta">
+              ${receta.map((p, i) => `
+                <div class="ticket-paso">
+                  <span class="ticket-paso-n">${i + 1}.</span>
+                  <span class="ticket-paso-txt">${this.escapeHtml(p.instruccion)}${p.tiempoMin ? `<strong class="ticket-paso-tiempo"> (${p.tiempoMin} min${p.equipo ? ' · ' + this.escapeHtml(p.equipo) : ''})</strong>` : ''}</span>
+                </div>`).join('')}
+            </div>` : '';
         itemsHtml += `
           <div class="ticket-row-item ticket-row-comanda">
             <span class="ticket-qty ticket-qty-comanda">${cant}x</span>
             <span class="ticket-name ticket-name-comanda">${cuentaBadge}${this.escapeHtml(it.nombre_producto || it.nombre)}</span>
+            ${pasosHtml}
             ${it.notas ? `<div class="ticket-item-nota ticket-nota-comanda">${this.escapeHtml(it.notas)}</div>` : ''}
           </div>
         `;
@@ -337,6 +351,30 @@ const Ticket = {
   },
 
   /**
+   * Recetas (paso a paso) de los productos de un pedido, como mapa
+   * { CodigoProducto: [paso, …] }.
+   *
+   * Nunca tira la comanda: si la carga falla devuelve `{}` y cocina recibe el
+   * ticket con los productos y sin receta, que es mejor que no recibir nada.
+   */
+  async cargarPasos(pedido) {
+    try {
+      const items = (pedido && pedido.items) || [];
+      const codigos = [...new Set(items.map(i => i.codigo || i.codigo_producto || i.codigoProducto).filter(Boolean))];
+      if (!codigos.length) return {};
+      const mapa = {};
+      await Promise.all(codigos.map(async c => {
+        const r = await apiGet('/receta-pasos/' + encodeURIComponent(c));
+        if (Array.isArray(r) && r.length) mapa[c] = r;
+      }));
+      return mapa;
+    } catch (e) {
+      console.warn('Ticket: no se pudo cargar la preparación', e);
+      return {};
+    }
+  },
+
+  /**
    * Muestra el modal interactivo con la vista previa del ticket
    */
   async mostrarModal(pedidoIdOrObject, opciones = {}) {
@@ -348,6 +386,12 @@ const Ticket = {
         alert('Error al cargar datos del pedido para ticket: ' + e.message);
         return;
       }
+    }
+
+    // Solo la comanda lleva la receta. Se guarda en `opciones` para que al
+    // alternar recibo ↔ comanda desde el modal no se vuelva a pedir.
+    if (opciones.tipo === 'comanda' && !opciones.pasos) {
+      opciones = { ...opciones, pasos: await this.cargarPasos(pedido) };
     }
 
     let modal = document.getElementById('ticketPreviewModal');

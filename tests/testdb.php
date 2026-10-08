@@ -40,6 +40,7 @@ function t_archivos_sql() {
     'migracion_v7a_materia_prima.sql',
     'migracion_v8_propinas_tabla.sql',
     'migracion_v9_facturacion.sql',
+    'migracion_v10_recetas_pasos.sql',
   ];
   $rutas = [];
   foreach ($orden as $n) {
@@ -106,7 +107,7 @@ function t_tablas_volatiles() {
   // `facturacion_consecutivos` NO va aquí: borrarla apagaría la numeración.
   return ['propina_distribucion', 'propinas', 'consumos_internos', 'caja_movimientos',
           'caja', 'pagos', 'movimientos', 'facturas', 'detalle_pedido', 'pedidos',
-          'auditoria', 'productos'];
+          'receta_pasos', 'recetas', 'auditoria', 'productos'];
 }
 
 function t_db_limpiar() {

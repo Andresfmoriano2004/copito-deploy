@@ -1707,6 +1707,46 @@
       border-bottom: 1px dashed #ccc;
     }
 
+    /* ─── Receta de preparación en la comanda (v10) ───
+       Se imprime debajo de cada producto: quien cocina lee el papel,
+       no una pantalla. Numeración propia y tiempo destacado. */
+    .ticket-receta {
+      margin-top: 4px;
+      padding-left: 24px;
+    }
+    .ticket-paso {
+      display: flex;
+      gap: 5px;
+      align-items: flex-start;
+      font-size: 12px;
+      line-height: 1.35;
+      color: #111;
+    }
+    .ticket-paso-n {
+      font-weight: 900;
+      min-width: 16px;
+      flex: 0 0 auto;
+    }
+    .ticket-paso-txt {
+      flex: 1;
+      word-break: break-word;
+    }
+    .ticket-paso-tiempo {
+      white-space: nowrap;
+    }
+
+    /* ─── Editor de pasos de preparación (v10) ─── */
+    .paso-fila input,
+    .paso-fila textarea {
+      padding: 8px 10px;
+    }
+    .paso-fila textarea {
+      line-height: 1.4;
+    }
+    .paso-fila .btn-sm {
+      padding: 6px 9px;
+    }
+
     .ticket-row-total {
       display: flex;
       justify-content: space-between;

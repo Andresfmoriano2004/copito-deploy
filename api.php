@@ -66,6 +66,7 @@ $modules = [
     'reportes'    => __DIR__ . '/api/auditoria/reportes.php',
     'materia-prima' => __DIR__ . '/api/inventario/materia_prima.php',
     'recetas'     => __DIR__ . '/api/inventario/recetas.php',
+    'receta-pasos' => __DIR__ . '/api/inventario/receta_pasos.php',
     'consumos-internos' => __DIR__ . '/api/inventario/consumos_internos.php',
     'propinas'    => __DIR__ . '/api/propinas/propinas.php',
     'facturacion' => __DIR__ . '/api/facturacion/facturacion.php',
