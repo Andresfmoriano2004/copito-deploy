@@ -108,6 +108,11 @@ En una instalación nueva se aplican **después, solo desde la v4**:
 | `sql/migracion_v9_facturacion.sql` | comprobante de venta ("Camino A"): tablas `facturas`, `facturacion_consecutivos`, `facturacion_series`; columnas fiscales en `productos`, `detalle_pedido` y `pedidos`; semillas de configuración fiscal | ✅ |
 | `sql/migracion_v10_recetas_pasos.sql` | tabla `receta_pasos`: procedimiento de preparación paso a paso por producto | ✅ |
 
+**No hay `migracion_v11.sql`**: la **v11** (stock híbrido y costo teórico de las
+recetas) es solo de comportamiento — `recetas.cantidad`, `materia_prima` y
+`movimientos_materia_prima` ya existían desde v7a/v10. Ver «v11 — la receta
+manda el stock y el costo» más abajo.
+
 Total: **24 tablas** (`login_intentos` se crea en runtime al primer login).
 Todas en `utf8mb4_general_ci`.
 
@@ -146,7 +151,7 @@ Tickets (Recibido/Cambio en efectivo, total intacto), Configuración.
 php tests/run_all.php
 ```
 
-**338 aserciones en 9 suites, todo en verde sobre una instalación limpia.**
+**392 aserciones en 10 suites, todo en verde sobre una instalación limpia.**
 
 | Suite | Cómo corre | Cubre |
 |---|---|---|
@@ -156,6 +161,7 @@ php tests/run_all.php
 | `test_inventario.php` | igual | stock = suma de movimientos, nada queda en negativo, movimiento rechazado sin rastro, historial de materia prima (regresión del 404 que lo sombreaba), borrar MP con movimientos (409) |
 | `test_auth_ratelimit.php` | igual | 5 fallos → bloqueo de 15 min (429), la IP bloqueada no entra ni con la contraseña buena, vencimiento del bloqueo, ventana deslizante de 15 min, mensajes que no filtran si el usuario existe, token de un usuario desactivado |
 | `test_split_bill.php` | igual | cada cuenta se cierra con su saldo, el stock baja solo al saldar la cuenta que lo contiene, cobro doble (409), pagos de más (400), suma de pagos = total del pedido |
+| `test_recetas_insumos.php` | igual | **stock híbrido (v11)**: un producto con receta se fabrica al cobrar y baja materia prima sin necesitar stock de terminado; sin receta manda el terminado; falta de insumo bloquea la venta; cancelar devuelve exactamente lo consumido; costo teórico = Σ(cantidad × costo) |
 | `test_facturacion.php` | igual | IVA desgranado desde precio con IVA incluido, emisión solo al cobrar el total, correlatividad sin huecos, pedido facturado inmutable, NIT del cliente, config del emisor, anulación, vista impresa |
 | `test_recetas_pasos.php` | igual | preparación paso a paso: orden de la comanda, reemplazo sin huecos, validaciones que **no** tocan la receta guardada, insumos intactos, un producto = una receta, cascada al borrar el producto, rol admin |
 | `test_seguridad.php` | Apache + BD real, solo lectura | bloqueos del `.htaccess` (incluidos `.opencode/` y `Agente/`), autenticación, rol desde la BD, migración v8, imágenes de producto servidas desde `uploads/productos/` y sin ejecución de scripts |
@@ -222,7 +228,7 @@ resolución DIAN, sin CUFE ni TrackID. Aplicado por `sql/migracion_v9_facturacio
 - Los datos del adquirente se capturan en el modal de cobro; si no se llenan,
   el comprobante imprime **CONSUMIDOR FINAL**.
 
-## Recetas — preparación paso a paso
+## Recetas — insumos y preparación paso a paso
 
 La pestaña **Recetas** resuelve dos preguntas distintas y por eso son dos tablas:
 
@@ -251,6 +257,34 @@ validación **no toca** la receta ya guardada: `jsonError` hace `exit`, así que
 la validación corre antes de abrir la transacción.
 
 Aplicado por `sql/migracion_v10_recetas_pasos.sql`.
+
+### v11 — la receta manda el stock y el costo
+
+Antes de v11 la receta era solo un dato: se cargaba cuánto entra pero nada la
+usaba. Ahora es la que manda en dos sitios (**no necesita migración**: todo lo
+que hace falta ya existía desde v7a/v10).
+
+| Regla | Comportamiento |
+|---|---|
+| **Stock híbrido** | Si el producto **tiene** receta, al cobrar se fabrica: baja materia prima y el producto terminado ni se mueve. Si **no tiene** receta, manda el stock de producto terminado como siempre. |
+| **Falta de insumo** | La venta se bloquea en `POST /pedidos/{id}/items` con el nombre de la materia prima que falta. Nada se descuenta de forma parcial. |
+| **Cancelación** | Devuelve exactamente lo que se consumió (mismo insumo, misma cantidad, mismo redondeo). |
+| **Costo teórico** | `GET /api/recetas/costos` → `Σ(cantidad × costo del insumo)` por unidad, con margen y margen % sobre el precio. `null` si no hay receta: ahí manda `productos.costo`, el número cargado a mano. |
+
+Todo vive en `api/shared/stock_helpers.php` (`tieneReceta`, `insumosReceta`,
+`checkStockVenta`, `consumirReceta`, `devolverReceta`, `costoTeorico`).
+**`checkStock()` no cambió**: sigue midiendo producto terminado porque es la
+regla correcta de los movimientos manuales (`/movimientos`) y de los consumos
+internos, que sí sacan producto ya terminado.
+
+La cantidad mínima de un insumo pasó de `0.001` a **`0.01`** (POST, PUT y el
+formulario): `movimientos_materia_prima.cantidad` es `DECIMAL(12,2)`, igual que
+todo el resto de stock y dinero, así que una receta de `0.001` por unidad se
+redondearía a `0` al consumir y la materia prima nunca bajaría. No es un
+cambio de precisión, es cerrar el único hueco en que la receta existía pero no
+consumía nada.
+
+Verificado por `tests/test_recetas_insumos.php` (54 aserciones).
 
 ## Seguridad en el despliegue
 

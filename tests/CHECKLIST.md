@@ -1,10 +1,11 @@
 # ☕ Copito POS — Lista de verificación manual
 
-**338 aserciones ya están automatizadas** en `php tests/run_all.php` (precios,
+**392 aserciones ya están automatizadas** en `php tests/run_all.php` (precios,
 pago parcial, reversión de stock, arqueo, inventario, límite de intentos de login,
-cuentas partidas, facturación, recetas de preparación y superficie pública).
-Aquí solo queda lo que la suite no puede comprobar: lo que depende de la
-interfaz, de un usuario `vendedor` real o de dos personas a la vez.
+cuentas partidas, recetas con insumos y stock híbrido, facturación, recetas de
+preparación y superficie pública). Aquí solo queda lo que la suite no puede
+comprobar: lo que depende de la interfaz, de un usuario `vendedor` real o de dos
+personas a la vez.
 
 Las filas marcadas 🤖 tienen su equivalente en código (`tests/<suite>.php`) y ya
 pasan; quedan como referencia de qué se probó y qué no.
@@ -160,6 +161,29 @@ mientras `index.html` y `sw.js` siguen en 200.
          **sin `ultimo_intento`**. El `?? 'now'` de la ventana deslizante caía en
          `now` y `$ultimoTs < time() - 900` nunca se cumplía: los fallos viejos
          se acumulaban para siempre y esa rama era código muerto. Corregido.
+- [x] **Fase 6 (v11): la receta manda el stock y el costo.** `recetas` ya
+      guardaba insumo + cantidad desde v7a, pero nada la usaba: un producto «con
+      receta» seguía exigiendo stock de terminado y no había ningún costo
+      calculado. Ahora, al cobrar, un producto con receta **se fabrica** (baja
+      materia prima y el terminado no se mueve); sin receta sigue mandando el
+      terminado; si falta insumo la venta se bloquea nombrando la materia prima;
+      cancelar devuelve exactamente lo consumido; y `GET /recetas/costos` expone
+      `Σ(cantidad × costo)` con margen y margen % sobre precio.
+      **Sin migración v11**: era solo comportamiento, todo lo que hace falta ya
+      existía. Detalle: la cantidad mínima de un insumo pasó de `0.001` a
+      `0.01` — `movimientos_materia_prima.cantidad` es `DECIMAL(12,2)`, y
+      `0.001` se redondeaba a `0` al consumir, o sea que la receta existía pero
+      no consumía nada. **54 aserciones** en `tests/test_recetas_insumos.php`.
+- [x] **Tercer bug destapado: `detalleId` era siempre `0`.**
+      `POST /pedidos/{id}/items` devolvía `(int)$pdo->lastInsertId()` **después**
+      del `commit()`, y en MariaDB 10.4 `commit()` (y un `UPDATE`) deja
+      `LAST_INSERT_ID()` en 0. El POS recibía `detalleId: 0` → en
+      `pos_controller.js:273`, `res.detalleId || res.id` caía a `undefined`, el
+      carrito nunca se marcaba sincronizado y volvía a reintentar el sync
+      (y a borrar `items/undefined`). Idem `POST /usuarios`: devolvía el id de
+      `auditoria`, no el del usuario nuevo. Corregidos capturando el id justo
+      después del `INSERT` — el mismo criterio que ya seguían `caja.php` y
+      `proveedores.php:49`.
 - [x] `Agente/*.md` → agentes reales en `.opencode/agents/` (la ruta documentada
       es `agents`, en plural). Los cuatro con `mode: all`, y `copito-auditoria`
       con permisos que le impiden editar fuera de `docs/` y le obligan a pedir

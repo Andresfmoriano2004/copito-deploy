@@ -9,6 +9,7 @@ Object.assign(App, {
   recetasMP: [],
   recetasProductos: [],
   recetaPasosData: [],   // pasos de preparación de todos los productos
+  recetasCostos: [],     // costo teórico por producto (v11)
 
   // Estado del editor de pasos (un producto = una receta).
   pasosEdit: null,
@@ -46,10 +47,15 @@ Object.assign(App, {
         apiGet('/productos'),
         apiGet('/receta-pasos')
       ]);
+      // El costo teórico es complementario: se pide aparte y a la fuerza se
+      // tolera un fallo, para que un error de esa ruta no se lleve por delante
+      // las tarjetas de insumos y de pasos.
+      const costos = await apiGet('/recetas/costos').catch(() => null);
       this.recetasData = recetas;
       this.recetasMP = mp;
       this.recetasProductos = prods;
       this.recetaPasosData = Array.isArray(pasos) ? pasos : [];
+      this.recetasCostos = Array.isArray(costos) ? costos : [];
       this._renderRecetas();
     } catch (e) {
       el.innerHTML = `<div class="empty-state">Error: ${App.escapeHtml(e.message)}</div>`;
@@ -134,9 +140,82 @@ Object.assign(App, {
       html += `</tbody></table></div>`;
     }
 
-    html += `</div></div>` + this._renderPreparacion();
+    html += `</div></div>` + this._renderCostos() + this._renderPreparacion();
 
     el.innerHTML = html;
+  },
+
+  /**
+   * Tarjeta "Costo teórico — cuánto cuesta hacerlo" (v11).
+   *
+   * `costoTeorico` sale de la receta: Σ(cantidad de cada insumo × su costo).
+   * `costoCatalogo` es el número a mano que cargó el administrador en el
+   * producto. Cuando discrepan, el registrado quedó desactualizado y la receta
+   * es la fuente de verdad.
+   */
+  _renderCostos() {
+    const filas = this.recetasCostos || [];
+    if (!filas.length) return '';
+    const conReceta = filas.filter(f => f.costoTeorico !== null && f.costoTeorico !== undefined);
+    const fmt = n => Number(n).toLocaleString('es-CO', { maximumFractionDigits: 2 });
+    const desf = f => Math.abs(f.costoTeorico - f.costoCatalogo) > 0.01;
+
+    const descuadres = conReceta.filter(desf);
+    const conMargen = conReceta.filter(f => f.margenPct !== null && f.margenPct !== undefined);
+    const margenMedio = conMargen.length
+      ? Math.round(conMargen.reduce((s, f) => s + Number(f.margenPct), 0) / conMargen.length)
+      : null;
+
+    let tabla = '';
+    if (conReceta.length) {
+      tabla = `<div class="table-container"><table class="data-table">
+        <thead><tr>
+          <th>Producto</th><th>Insumos</th><th>Costo teórico</th>
+          <th>Costo registrado</th><th>Precio</th><th>Margen</th>
+        </tr></thead><tbody>`;
+      conReceta.forEach(f => {
+        const ok = !desf(f);
+        tabla += `<tr>
+          <td style="font-weight:600;">${this.escapeHtml(f.nombre)}</td>
+          <td>${f.insumos}</td>
+          <td><strong>$${fmt(f.costoTeorico)}</strong></td>
+          <td style="${ok ? 'color:var(--text-muted);' : 'color:#c0392b;font-weight:600;'}"
+              title="${ok ? 'Coincide con la receta' : 'No coincide con la receta: el costo del producto está desactualizado'}">$${fmt(f.costoCatalogo)}${ok ? '' : ' ⚠'}</td>
+          <td>$${fmt(f.precio)}</td>
+          <td>$${fmt(f.margen)}${f.margenPct !== null && f.margenPct !== undefined ? ` <span style="color:var(--text-muted);">(${f.margenPct}%)</span>` : ''}</td>
+        </tr>`;
+      });
+      tabla += `</tbody></table></div>`;
+    } else {
+      tabla = `<p class="empty-state">Ningún producto tiene insumos cargados, así que no hay costo teórico
+        que calcular. Mientras tanto el inventario se valora con el costo registrado a mano en cada producto.</p>`;
+    }
+
+    return `
+      <div class="card" style="margin-top:20px;">
+        <div class="card-header">Costo teórico — cuánto cuesta hacerlo</div>
+        <div class="card-body">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-value">${conReceta.length}</div>
+              <div class="stat-label">Productos con costo teórico</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">${descuadres.length}</div>
+              <div class="stat-label">Costo registrado desactualizado</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">${margenMedio === null ? '—' : margenMedio + '%'}</div>
+              <div class="stat-label">Margen medio (sobre precio)</div>
+            </div>
+          </div>
+          ${tabla}
+          <p style="color:var(--text-muted);font-size:0.82rem;margin-top:10px;">
+            Costo teórico = Σ(cantidad de cada insumo × su costo) por unidad.
+            Al vender, esa misma receta es la que descuenta materia prima.
+          </p>
+        </div>
+      </div>`;
   },
 
   /** Tarjeta "Preparación — receta paso a paso" (v10). */
@@ -408,7 +487,7 @@ Object.assign(App, {
       </div>
       <div class="form-group">
         <label>Cantidad por unidad *</label>
-        <input id="recetaCantidad" type="number" min="0.001" step="0.001" placeholder="Ej: 20 (gramos por taza)" autofocus>
+        <input id="recetaCantidad" type="number" min="0.01" step="0.01" placeholder="Ej: 20 (gramos por taza)" autofocus>
       </div>
       <div class="form-group">
         <label>Notas</label>
@@ -445,7 +524,7 @@ Object.assign(App, {
       <h3 style="margin-bottom:15px;">Editar receta de insumos</h3>
       <div class="form-group">
         <label>Cantidad por unidad *</label>
-        <input id="recetaEditCantidad" type="number" min="0.001" step="0.001" value="${cantidad}" autofocus>
+        <input id="recetaEditCantidad" type="number" min="0.01" step="0.01" value="${cantidad}" autofocus>
       </div>
       <div class="form-group">
         <label>Notas</label>

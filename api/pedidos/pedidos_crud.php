@@ -96,7 +96,15 @@ if ($method === 'POST' && preg_match('#^pedidos/([^/]+)/cancelar$#', $path, $m))
       $insMov = $pdo->prepare('INSERT INTO movimientos (codigo_producto, tipo, cantidad, notas, usuario_id) VALUES (?,?,?,?,?)');
       $updPag = $pdo->prepare('UPDATE detalle_pedido SET pagado=FALSE WHERE id=?');
       foreach ($itemsPagados as $ip) {
-        $insMov->execute([$ip['codigo_producto'], 'INGRESO', $ip['cantidad'], 'Reversión por cancelación Pedido ' . $id . ' - ' . $ip['nombre_producto'], $authUser['id']]);
+        // Lo que salió al cobrar hay que devolverlo igual (v11): si el producto
+        // tiene receta, lo que se consumió fue materia prima y no producto
+        // terminado — devolver producto habría creado stock de la nada.
+        if (tieneReceta($pdo, $ip['codigo_producto'])) {
+          devolverReceta($pdo, $ip['codigo_producto'], $ip['cantidad'],
+            'Reversión por cancelación Pedido ' . $id . ' - ' . $ip['nombre_producto'], $authUser['id']);
+        } else {
+          $insMov->execute([$ip['codigo_producto'], 'INGRESO', $ip['cantidad'], 'Reversión por cancelación Pedido ' . $id . ' - ' . $ip['nombre_producto'], $authUser['id']]);
+        }
         $updPag->execute([$ip['id']]);
       }
     }
@@ -200,7 +208,10 @@ if ($method === 'POST' && preg_match('#^pedidos/(.+)/items$#', $path, $m)) {
   // El precio lo fija el catálogo: solo un admin puede aplicar otro (aplicarPrecioItem)
   $precio = aplicarPrecioItem($precioCliente, (float)$pRow['precio'], $authUser);
 
-  if (!checkStock($pdo, $codigo, $cantidad)) jsonError("Stock insuficiente");
+  // Stock híbrido (v11): con receta se mide contra la materia prima; sin
+  // receta, contra el producto terminado. El mensaje ya viene redactado.
+  $checkStock = checkStockVenta($pdo, $codigo, $cantidad);
+  if ($checkStock !== true) jsonError($checkStock);
 
   $subtotal = round($cantidad * $precio, 2);
   // El precio ya incluye IVA: se guarda la línea desgranada para que el
