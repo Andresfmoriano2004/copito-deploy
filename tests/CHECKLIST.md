@@ -126,7 +126,7 @@ mientras `index.html` y `sw.js` siguen en 200.
 |---|---|---|
 | 1 | `curl -s -o /dev/null -w "%{http_code}" https://<dominio>/.env` | 403 |
 | 2 | `curl -s -o /dev/null -w "%{http_code}" https://<dominio>/.git/HEAD` | 403 |
-| 3 | Revisar que Apache tenga `AllowOverride All` en el vhost (sin eso, el `.htaccess` **no aplica** y todo lo anterior devuelve 200) |
+| 3 | `BASE_URL=https://<dominio> php tests/test_seguridad.php` → todo verde | ya automatizado: sin `AllowOverride All` el `.htaccess` no aplica, `/README.md` deja de dar 403 y falla la aserción *«Apache lee el .htaccess (AllowOverride All en el vhost)»* junto con todos los bloqueos |
 | 4 | Revisar que `display_errors = Off` en `php.ini` de producción | — |
 
 ---
@@ -162,6 +162,7 @@ mientras `index.html` y `sw.js` siguen en 200.
       prompts que ya no eran ciertas (`node -c` no existe aquí y la regla de
       `@keyframes` ahora admite `spin`).
 - [ ] Migraciones `v5`, `v6`, `v7` no son idempotentes: re-ejecutarlas rompe.
+      *(Decidido el 2026-10-07: fuera de esta tanda — se dejan como pendiente.)*
       `v4`, `v7a` y `v8` sí se pueden correr varias veces.
       **`v2` y `v3` ya no aplican en instalación nueva**: están consolidadas en
       `sql/dpcoffee.sql`, así que ejecutarlas después falla con *Duplicate column

@@ -6,7 +6,12 @@
  */
 require_once __DIR__ . '/helpers.php';
 
-const BASE_URL = 'http://localhost/copito-deploy';
+// Para comprobar el despliegue real se puede apuntar a producción:
+//   BASE_URL=https://tu-dominio php tests/test_seguridad.php
+// Es el único chequeo automatizable de "AllowOverride All": sin esa directiva el
+// .htaccess no aplica y los 403 de la sección 1 se vuelven 200.
+// El resto de suites NO sirven contra producción: crean y borran datos.
+define('BASE_URL', getenv('BASE_URL') ?: 'http://localhost/copito-deploy');
 
 /**
  * GET crudo contra cualquier ruta de la app (no solo /api).
@@ -35,7 +40,6 @@ $bloqueados = [
   '/tests/helpers.php'           => 'harness con forja de JWT',
   '/Agente/README.md'           => 'índice de agentes',
   '/.opencode/agents/copito-auditoria.md' => 'agentes de OpenCode (modelo de seguridad)',
-  '/README.md'                   => 'documentación interna',
   '/sql/dpcoffee.sql'            => 'esquema de la base de datos',
   '/router.php'                  => 'router del servidor PHP',
   '/.gitignore'                  => 'reglas de git',
@@ -52,6 +56,13 @@ foreach ($bloqueados as $ruta => $queEs) {
 t_ok('/index.html sigue sirviéndose', $code === 200, "devolvió HTTP $code");
 [$code] = t_url('/sw.js');
 t_ok('/sw.js sigue sirviéndose', $code === 200, "devolvió HTTP $code");
+
+// Canario de AllowOverride: /README.md existe siempre en el repo y solo lo
+// bloquea el .htaccess. Si el vhost no tiene AllowOverride All, Apache no lee
+// ese archivo y lo devuelve 200 — que además rompe todos los 403 de la sección 1.
+[$code] = t_url('/README.md');
+t_ok('Apache lee el .htaccess (AllowOverride All en el vhost)', $code === 403,
+     $code === 403 ? '' : "devolvió HTTP $code: sin AllowOverride All el .htaccess no aplica");
 
 // ─── 3. Autenticación ───────────────────────────────────────────────────────
 [$code] = t_url('/api/productos');

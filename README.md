@@ -39,6 +39,14 @@ Vanilla **PHP + MySQL + JS**, sin frameworks ni build. ~350 KB.
 
 3. **Apache**: el vhost debe tener `AllowOverride All`, si no, **ninguna regla del
    `.htaccess` aplica** (ni los bloqueos de seguridad ni el reescritor de `/api`).
+   Se comprueba en un solo comando, desde el servidor:
+
+   ```bash
+   BASE_URL=https://<tu-dominio> php tests/test_seguridad.php
+   ```
+
+   Si falta `AllowOverride All`, la aserción *«Apache lee el .htaccess
+   (AllowOverride All en el vhost)»* y todos los bloqueos de la sección 1 fallan.
 4. **PHP**: `display_errors = Off` en producción.
 
 Acceso inicial: `admin` / `admin123` (cambiar en Configuración → Usuarios).
