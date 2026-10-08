@@ -166,6 +166,13 @@ mientras `index.html` y `sw.js` siguen en 200.
       encontrado"), `js/modules/pos_order.js:71` y `:394` (carga del pedido y
       borrado de ítems: ambos abortan) y `js/controllers/pos_controller.js:56`.
       Los dos críticos (`_posSyncCart` y `_posCancelar`) ya sí avisan.
-- [ ] 7 `@keyframes` en CSS, prohibidos por las reglas del proyecto — pero
-      incluyen el spinner, que **es** funcional. Decidir si se relaja la regla o
-      se reimplementa sin animación; no se han tocado para no romper la UI.
+- [x] 7 `@keyframes` en CSS → decisión: **se conserva solo `spin`** (el
+      indicador de carga real, `.loading-spinner`) y se retiran los otros seis:
+      `fadeIn`, `pulse-border`, `glow-total`, `modalSlideUp`, `pulse-abierto` y
+      `cajaPulse`. Dos ni siquiera corrían (`.pedido-total-box` y
+      `.caja-estado-dot.pulse` no existen en ningún HTML ni JS). Los otros cuatro
+      arrancaban desde `display:none` (`.tab-content`, `.ticket-modal-content`)
+      o eran bucles infinitos decorativos (`.lugar-card.en-pago`,
+      `.badge-abierto`), así que no admiten `transition` sin JS: la interfaz
+      ahora entra en seco. La excepción queda documentada en `css/style.css`
+      junto al `spin` y en la sección de transiciones.
