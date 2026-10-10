@@ -37,8 +37,11 @@ if ($method === 'POST' && $path === 'usuarios') {
     $codigoReferencia = $codigoReferencia ?: null;
     $stmt = $pdo->prepare('INSERT INTO usuarios (username, password_hash, nombre, rol, codigo_referencia) VALUES (?,?,?,?,?)');
     $stmt->execute([$username, $hash, $nombre, $rol, $codigoReferencia]);
+    // Capturar el id YA: auditLog() INSERTA en `auditoria` y ese id pasaba a
+    // ser el que devolvía la creación (mismo criterio que proveedores.php:49).
+    $userId = (int)$pdo->lastInsertId();
     auditLog($authUser, 'CREAR_USUARIO', null, null, ['username' => $username, 'rol' => $rol, 'codigoReferencia' => $codigoReferencia]);
-    jsonResponse(['id' => (int)$pdo->lastInsertId(), 'username' => $username, 'nombre' => $nombre, 'rol' => $rol, 'codigoReferencia' => $codigoReferencia, 'activo' => true], 201);
+    jsonResponse(['id' => $userId, 'username' => $username, 'nombre' => $nombre, 'rol' => $rol, 'codigoReferencia' => $codigoReferencia, 'activo' => true], 201);
   } catch (PDOException $e) {
     if ($e->getCode() == 23000) {
       // Distinguir qué UNIQUE falló para dar mensaje accionable (Reactiva vs cambia nombre)
@@ -52,7 +55,8 @@ if ($method === 'POST' && $path === 'usuarios') {
       }
       jsonError('El nombre de usuario o código ya existe');
     }
-    jsonError($e->getMessage(), 500);
+    error_log('Copito error creando usuario: ' . $e->getMessage());
+    jsonError('No se pudo crear el usuario', 500);
   }
 }
 

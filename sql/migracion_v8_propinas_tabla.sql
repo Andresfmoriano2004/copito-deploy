@@ -28,4 +28,4 @@ CREATE TABLE IF NOT EXISTS propinas (
   INDEX idx_prop_fecha   (fecha),
   INDEX idx_prop_pedido  (id_pedido),
   INDEX idx_prop_usuario (usuario_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

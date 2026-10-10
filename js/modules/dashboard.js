@@ -23,7 +23,7 @@ Object.assign(App, {
         content.innerHTML = `
           <div class="stats-grid">
             <div class="stat-card"><div class="stat-value">${totalProd}</div><div class="stat-label">Productos</div></div>
-            <div class="stat-card"><div class="stat-value" style="color:${bajoStock > 0 ? 'var(--danger)' : 'var(--success)'}">${bajoStock}</div><div class="stat-label">Stock Bajo</div></div>
+            <div class="stat-card"><div class="stat-value" style="color:${bajoStock > 0 ? 'var(--danger)' : 'var(--success-text)'}">${bajoStock}</div><div class="stat-label">Stock Bajo</div></div>
             <div class="stat-card"><div class="stat-value">${totalPedidos}</div><div class="stat-label">Pedidos Activos</div></div>
             <div class="stat-card"><div class="stat-value">${this.fmt(valorInv)}</div><div class="stat-label">Valor Inventario (costo)</div></div>
           </div>
@@ -43,7 +43,7 @@ Object.assign(App, {
             <tbody>${stock.slice(0, 10).map(p => `<tr>
               <td>${this.escapeHtml(p.codigo)}</td>
               <td>${this.escapeHtml(p.nombre)}</td>
-              <td style="color:${p.stockActual < p.stockMinimo ? 'var(--danger)' : 'var(--success)'};font-weight:600;">${p.stockActual}</td>
+              <td style="color:${p.stockActual < p.stockMinimo ? 'var(--danger)' : 'var(--success-text)'};font-weight:600;">${p.stockActual}</td>
               <td>${p.stockMinimo}</td>
               <td>${this.fmt(p.precio)}</td>
               <td>${this.fmt(p.costo || 0)}</td>

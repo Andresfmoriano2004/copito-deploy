@@ -23,7 +23,25 @@ if ($method === 'GET' && preg_match('#^pedidos/([^/]+)$#', $path, $m)) {
     'total' => round((float)$ped['total'], 2), 'metodoPago' => $ped['metodo_pago'] ?? '',
     'totalPagado' => $totalPagado, 'saldoRestante' => round((float)$ped['total'] - $totalPagado, 2),
     'items' => $items, 'pagos' => $pagos,
-    'cuentasActivas' => $ped['cuentas_activas'] ? explode(',', $ped['cuentas_activas']) : null
+    'cuentasActivas' => $ped['cuentas_activas'] ? explode(',', $ped['cuentas_activas']) : null,
+    // ── Facturación (v9). Todo lo que el comprobante necesita imprimir ──
+    'numeroFactura' => $ped['numero_factura'] ?? null,
+    'formaPago' => $ped['forma_pago'] ?? 'Contado',
+    'clienteFiscal' => [
+      'nit'       => $ped['cliente_nit'] ?? null,
+      'dv'        => $ped['cliente_dv'] ?? null,
+      'direccion' => $ped['cliente_direccion'] ?? null,
+      'email'     => $ped['cliente_email'] ?? null,
+      'regimen'   => $ped['cliente_regimen'] ?? null,
+    ],
+    'totales' => [
+      'base'       => round((float)($ped['total_base'] ?? 0), 2),
+      'descuentos' => round((float)($ped['total_descuentos'] ?? 0), 2),
+      'iva'        => round((float)($ped['total_iva'] ?? 0), 2),
+      'total'      => round((float)$ped['total'], 2),
+    ],
+    'factura' => facturaDelPedido($pdo, $id),
+    'empresa' => empresaFactura($pdo),
   ]);
 }
 
@@ -61,6 +79,30 @@ if ($method === 'GET' && preg_match('#^pedidos/([^/]+)/pdf$#', $path, $m)) {
   $items = fetchPedidoItems($pdo, $id);
   $pagos = fetchPedidoPagos($pdo, $id);
 
+  // Datos fiscales del comprobante (v9). El encabezado salía hardcodeado
+  // (líneas 107-109): ahora sale de `configuraciones`, igual que en js/ticket.js.
+  $empresa   = empresaFactura($pdo);
+  $factura   = facturaDelPedido($pdo, $id);
+  $nitEmisor = $empresa['nit'] !== ''
+    ? 'NIT: ' . formatoIdentificacion($empresa['nit'], $empresa['dv'])
+    : '';
+  $base  = (float)($ped['total_base'] ?? 0);
+  $iva   = (float)($ped['total_iva'] ?? 0);
+  $desc  = (float)($ped['total_descuentos'] ?? 0);
+  $total = (float)$ped['total'];
+  $nitCliente = !empty($ped['cliente_nit'])
+    ? formatoIdentificacion($ped['cliente_nit'], $ped['cliente_dv'])
+    : '';
+  $sinCliente = ($ped['cliente'] ?? '') === '' && $nitCliente === '';
+
+  $tarifas = [];
+  foreach ($items as $it) {
+    $p = (float)($it['ivaPorcentaje'] ?? 0);
+    if ($p > 0) $tarifas[$p] = true;
+  }
+  $tarifas = array_keys($tarifas);
+  sort($tarifas);
+
   header('Content-Type: text/html; charset=utf-8');
   ?>
   <!DOCTYPE html>
@@ -86,16 +128,62 @@ if ($method === 'GET' && preg_match('#^pedidos/([^/]+)/pdf$#', $path, $m)) {
       <button class="btn-print" onclick="window.print()">🖨️ Imprimir Ticket</button>
     </div>
     <div class="center">
-      <div class="bold" style="font-size:16px;">DARK PINK COFFEE</div>
-      <div style="font-size:11px;">Cafetería & Pastelería</div>
-      <div style="font-size:10px;">NIT: 901.234.567-8</div>
+      <div class="bold" style="font-size:16px;"><?= htmlspecialchars($empresa['nombre']) ?></div>
+      <?php if ($empresa['razon'] !== '' && $empresa['razon'] !== $empresa['nombre']): ?>
+        <div style="font-size:11px;"><?= htmlspecialchars($empresa['razon']) ?></div>
+      <?php endif; ?>
+      <?php if ($empresa['subtitulo'] !== ''): ?>
+        <div style="font-size:11px;"><?= htmlspecialchars($empresa['subtitulo']) ?></div>
+      <?php endif; ?>
+      <?php if ($nitEmisor !== ''): ?>
+        <div style="font-size:10px;"><?= htmlspecialchars($nitEmisor) ?></div>
+      <?php endif; ?>
+      <?php if ($empresa['direccion'] !== ''): ?>
+        <div style="font-size:10px;"><?= htmlspecialchars($empresa['direccion'] . ($empresa['ciudad'] !== '' ? ' · ' . $empresa['ciudad'] : '')) ?></div>
+      <?php endif; ?>
+      <?php if ($empresa['telefono'] !== ''): ?>
+        <div style="font-size:10px;"><?= htmlspecialchars($empresa['telefono']) ?></div>
+      <?php endif; ?>
+      <?php if ($empresa['regimen'] !== ''): ?>
+        <div style="font-size:10px;">Régimen: <?= htmlspecialchars($empresa['regimen']) ?></div>
+      <?php endif; ?>
       <div class="hr-double"></div>
-      <div class="bold">*** FACTURA DE VENTA ***</div>
+      <div class="bold"><?= $factura ? '*** FACTURA DE VENTA ***' : '*** TICKET DE VENTA ***' ?></div>
+      <?php if ($factura): ?>
+        <div class="bold" style="font-size:14px; letter-spacing:1px;">No. <?= htmlspecialchars($factura['numero']) ?></div>
+        <?php if (!empty($factura['resolucion'])): ?>
+          <div style="font-size:10px;">Resolución <?= htmlspecialchars($factura['resolucion']) ?></div>
+        <?php endif; ?>
+        <?php if ($factura['estado'] === 'Anulada'): ?>
+          <div class="bold" style="color:#c00;">
+            *** ANULADA ***<?= $factura['anuladaMotivo'] !== null && $factura['anuladaMotivo'] !== '' ? ' — ' . htmlspecialchars($factura['anuladaMotivo']) : '' ?>
+          </div>
+        <?php endif; ?>
+      <?php endif; ?>
     </div>
     <div class="hr"></div>
-    <div class="flex"><span>Pedido: <strong>#<?= htmlspecialchars($id) ?></strong></span><span><?= date('d/m/Y h:i A', strtotime($ped['fecha_cierre'] ?? $ped['fecha_creacion'])) ?></span></div>
+    <div class="flex">
+      <span>Pedido: <strong>#<?= htmlspecialchars($id) ?></strong></span>
+      <span><?= htmlspecialchars($factura['fechaEmisionFmt'] ?? fmtFechaHoraBogota($ped['fecha_cierre'] ?? $ped['fecha_creacion'])) ?></span>
+    </div>
     <div class="flex"><span>Lugar: <strong><?= htmlspecialchars($ped['lugar']) ?></strong></span></div>
-    <?php if (!empty($ped['cliente'])): ?>
+    <?php if ($factura): ?>
+      <div class="bold" style="margin-top:6px;">CLIENTE</div>
+      <?php if ($sinCliente): ?>
+        <div class="flex"><span>Nombre:</span><span>CONSUMIDOR FINAL</span></div>
+      <?php else: ?>
+        <div class="flex"><span>Nombre:</span><span><?= htmlspecialchars($ped['cliente'] !== '' ? $ped['cliente'] : 'Sin nombre') ?></span></div>
+        <?php if ($nitCliente !== ''): ?>
+          <div class="flex"><span>NIT/C.C.:</span><span><?= htmlspecialchars($nitCliente) ?></span></div>
+        <?php endif; ?>
+        <?php if (!empty($ped['cliente_direccion'])): ?>
+          <div class="flex"><span>Dirección:</span><span><?= htmlspecialchars($ped['cliente_direccion']) ?></span></div>
+        <?php endif; ?>
+        <?php if (!empty($ped['cliente_regimen'])): ?>
+          <div class="flex"><span>Régimen:</span><span><?= htmlspecialchars($ped['cliente_regimen']) ?></span></div>
+        <?php endif; ?>
+      <?php endif; ?>
+    <?php elseif (!empty($ped['cliente'])): ?>
       <div class="flex"><span>Cliente: <strong><?= htmlspecialchars($ped['cliente']) ?></strong></span></div>
     <?php endif; ?>
     <div class="hr"></div>
@@ -103,27 +191,51 @@ if ($method === 'GET' && preg_match('#^pedidos/([^/]+)/pdf$#', $path, $m)) {
       <?php foreach ($items as $it): ?>
         <div class="item">
           <div class="flex">
-            <span><?= (float)$it['cantidad'] ?>x <?= htmlspecialchars($it['nombre_producto']) ?></span>
-            <span>$<?= number_format($it['subtotal'], 0, ',', '.') ?></span>
+            <span><?= (float)$it['cantidad'] ?>x <?= htmlspecialchars($it['nombre']) ?></span>
+            <span>$<?= number_format($it['subtotal'], $factura ? 2 : 0, ',', '.') ?></span>
           </div>
-          <?php if ($it['cantidad'] > 1): ?>
-            <div style="font-size:10px;color:#555;">(<?= (float)$it['cantidad'] ?> x $<?= number_format($it['precio_unitario'], 0, ',', '.') ?>)</div>
+          <?php if ($factura): ?>
+            <div style="font-size:10px;color:#555;">
+              <?= (float)$it['cantidad'] ?> <?= htmlspecialchars($it['unidad']) ?> · c/u $<?= number_format($it['precioUnitario'], 2, ',', '.') ?>
+            </div>
+            <?php if ((float)$it['ivaPorcentaje'] > 0): ?>
+              <div style="font-size:10px;color:#555;">
+                Base $<?= number_format($it['baseGravable'], 2, ',', '.') ?> · IVA <?= (float)$it['ivaPorcentaje'] ?>% $<?= number_format($it['ivaValor'], 2, ',', '.') ?>
+              </div>
+            <?php endif; ?>
+          <?php elseif ($it['cantidad'] > 1): ?>
+            <div style="font-size:10px;color:#555;">(<?= (float)$it['cantidad'] ?> x $<?= number_format($it['precioUnitario'], 0, ',', '.') ?>)</div>
           <?php endif; ?>
         </div>
       <?php endforeach; ?>
     </div>
     <div class="hr"></div>
+    <?php if ($factura): ?>
+      <div class="flex"><span>Subtotal:</span><span>$<?= number_format($base, 2, ',', '.') ?></span></div>
+      <?php if ($desc > 0.005): ?>
+        <div class="flex"><span>Descuentos:</span><span>-$<?= number_format($desc, 2, ',', '.') ?></span></div>
+      <?php endif; ?>
+      <?php if ($iva > 0.005): ?>
+        <div class="flex">
+          <span>IVA <?= count($tarifas) === 1 ? (float)$tarifas[0] . '%' : '' ?>:</span>
+          <span>$<?= number_format($iva, 2, ',', '.') ?></span>
+        </div>
+      <?php endif; ?>
+    <?php endif; ?>
     <div class="flex bold" style="font-size:14px;">
       <span>TOTAL:</span>
-      <span>$<?= number_format($ped['total'], 0, ',', '.') ?></span>
+      <span>$<?= number_format($total, $factura ? 2 : 0, ',', '.') ?></span>
     </div>
+    <?php if ($factura && !empty($ped['forma_pago'])): ?>
+      <div class="flex"><span>Forma de pago:</span><span><?= htmlspecialchars($ped['forma_pago']) ?></span></div>
+    <?php endif; ?>
     <?php if (!empty($ped['metodo_pago'])): ?>
       <div class="flex"><span>Pago:</span><span><?= htmlspecialchars($ped['metodo_pago']) ?></span></div>
     <?php endif; ?>
     <div class="center" style="margin-top:12px;">
       <div class="hr-double"></div>
-      <div class="bold">¡Gracias por su visita!</div>
-      <div>Vuelva pronto ☕</div>
+      <div class="bold"><?= htmlspecialchars($empresa['pie']) ?></div>
+      <div><?= htmlspecialchars($empresa['pie2']) ?></div>
     </div>
     <script>
       window.onload = function() { window.print(); }

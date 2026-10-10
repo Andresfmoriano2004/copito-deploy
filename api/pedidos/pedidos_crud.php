@@ -16,8 +16,16 @@ if ($method === 'POST' && $path === 'pedidos') {
   }
 
   $id = generarId();
-  $stmt = $pdo->prepare('INSERT INTO pedidos (id_pedido, lugar, cliente, usuario_id, vendedor) VALUES (?,?,?,?,?)');
-  $stmt->execute([$id, $lugar, $cliente, $authUser['id'], $authUser['nombre']]);
+  // Datos fiscales: el POS suele completarlos con un PUT antes de cobrar,
+  // pero se aceptan aquí por si vienen en la misma llamada de creación.
+  $fis = datosClienteFiscal($body);
+  $stmt = $pdo->prepare('INSERT INTO pedidos
+      (id_pedido, lugar, cliente, usuario_id, vendedor,
+       cliente_nit, cliente_dv, cliente_direccion, cliente_email, cliente_regimen, forma_pago)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?)');
+  $stmt->execute([$id, $lugar, $cliente, $authUser['id'], $authUser['nombre'],
+                  $fis['cliente_nit'], $fis['cliente_dv'], $fis['cliente_direccion'],
+                  $fis['cliente_email'], $fis['cliente_regimen'], 'Contado']);
   auditLog($authUser, 'CREAR_PEDIDO', $id, $lugar);
   jsonResponse(['success' => true, 'pedidoId' => $id, 'mensaje' => "Pedido $id creado en $lugar"]);
 }
@@ -80,7 +88,28 @@ if ($method === 'POST' && preg_match('#^pedidos/([^/]+)/cancelar$#', $path, $m))
       jsonError('El pedido ya no está abierto (otro colaborador pudo cerrarlo o cancelarlo)', 409);
     }
 
-    // 3. Auditoría completa con trazabilidad
+    // 3. Revertir inventario: todo item con pagado=TRUE descontó stock al cobrarse
+    $pagadosStmt = $pdo->prepare('SELECT id, codigo_producto, cantidad, nombre_producto FROM detalle_pedido WHERE id_pedido=? AND pagado=TRUE FOR UPDATE');
+    $pagadosStmt->execute([$id]);
+    $itemsPagados = $pagadosStmt->fetchAll();
+    if ($itemsPagados) {
+      $insMov = $pdo->prepare('INSERT INTO movimientos (codigo_producto, tipo, cantidad, notas, usuario_id) VALUES (?,?,?,?,?)');
+      $updPag = $pdo->prepare('UPDATE detalle_pedido SET pagado=FALSE WHERE id=?');
+      foreach ($itemsPagados as $ip) {
+        // Lo que salió al cobrar hay que devolverlo igual (v11): si el producto
+        // tiene receta, lo que se consumió fue materia prima y no producto
+        // terminado — devolver producto habría creado stock de la nada.
+        if (tieneReceta($pdo, $ip['codigo_producto'])) {
+          devolverReceta($pdo, $ip['codigo_producto'], $ip['cantidad'],
+            'Reversión por cancelación Pedido ' . $id . ' - ' . $ip['nombre_producto'], $authUser['id']);
+        } else {
+          $insMov->execute([$ip['codigo_producto'], 'INGRESO', $ip['cantidad'], 'Reversión por cancelación Pedido ' . $id . ' - ' . $ip['nombre_producto'], $authUser['id']]);
+        }
+        $updPag->execute([$ip['id']]);
+      }
+    }
+
+    // 4. Auditoría completa con trazabilidad
     auditLog($authUser, 'CANCELAR_PEDIDO', $id, $pedido['lugar'], [
       'motivo' => $motivo,
       'estadoAnterior' => 'Abierto',
@@ -91,6 +120,7 @@ if ($method === 'POST' && preg_match('#^pedidos/([^/]+)/cancelar$#', $path, $m))
       'saldoPendiente' => $totalItems - $totalPagado,
       'pagosExistentes' => count($pagosExistentes),
       'pagosRevertidos' => count($movimientosCaja),
+      'stockRevertido' => count($itemsPagados),
       'itemsCancelados' => array_map(fn($i) => [
         'codigo' => $i['codigo_producto'],
         'nombre' => $i['nombre_producto'],
@@ -104,10 +134,13 @@ if ($method === 'POST' && preg_match('#^pedidos/([^/]+)/cancelar$#', $path, $m))
     $pdo->commit();
 
     $mensaje = 'Pedido cancelado y mesa liberada';
+    if ($itemsPagados) {
+      $mensaje .= '. Se reversó inventario de ' . count($itemsPagados) . ' item(s) ya cobrado(s).';
+    }
     if ($totalPagado > 0) {
       $mensaje .= '. Se reversaron $' . number_format($totalPagado, 0, ',', '.') . ' de caja (' . count($movimientosCaja) . ' movimiento(s)).';
     }
-    jsonResponse(['success' => true, 'mensaje' => $mensaje, 'totalPagado' => $totalPagado, 'pagosRevertidos' => count($movimientosCaja)]);
+    jsonResponse(['success' => true, 'mensaje' => $mensaje, 'totalPagado' => $totalPagado, 'pagosRevertidos' => count($movimientosCaja), 'stockRevertido' => count($itemsPagados)]);
 
   } catch (Exception $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
@@ -124,8 +157,21 @@ if ($method === 'PUT' && preg_match('#^pedidos/([^/]+)$#', $path, $m) && !str_co
   autorizarAccesoPedido($ped, $authUser);
   if ($ped['estado'] !== 'Abierto') jsonError('No se puede editar un pedido ' . $ped['estado'], 409);
   $sets = []; $vals = [];
-  foreach (['cliente', 'lugar', 'notas'] as $f) {
-    if (isset($body[$f])) { $sets[] = "$f=?"; $vals[] = $body[$f]; }
+  // 'notas' => 0 significa TEXT sin límite; el resto se recorta al tamaño
+  // real de la columna para no depender del modo strict de MySQL.
+  foreach (['cliente' => 200, 'lugar' => 50, 'notas' => 0, 'forma_pago' => 30] as $f => $max) {
+    if (!isset($body[$f])) continue;
+    $v = (string)$body[$f];
+    if ($max > 0 && mb_strlen($v) > $max) $v = mb_substr($v, 0, $max);
+    $sets[] = "$f=?";
+    $vals[] = $v;
+  }
+  // Datos fiscales del cliente: solo se tocan los que el POS envió, para que
+  // un PUT parcial no borre la dirección que ya estaba guardada.
+  foreach (datosClienteFiscal($body) as $col => $val) {
+    if (!array_key_exists($col, $body)) continue;
+    $sets[] = "$col=?";
+    $vals[] = $val;
   }
   if (isset($body['cuentasActivas']) && is_array($body['cuentasActivas'])) {
     $sets[] = 'cuentas_activas=?';
@@ -148,33 +194,47 @@ if ($method === 'POST' && preg_match('#^pedidos/(.+)/items$#', $path, $m)) {
   $codigo = $body['codigo'] ?? '';
   $nombre = $body['nombre'] ?? '';
   $cantidad = (float)($body['cantidad'] ?? 0);
-  $precio = round((float)($body['precioUnitario'] ?? 0), 2);
+  $precioCliente = round((float)($body['precioUnitario'] ?? 0), 2);
   $notas = $body['notas'] ?? '';
   $cuenta = $body['cuenta'] ?? null;
   if ($cuenta === '') $cuenta = null;
   if (!$codigo || !$cantidad || $cantidad <= 0) jsonError('Código y cantidad válidos requeridos');
-  if ($precio < 0) jsonError('El precio no puede ser negativo');
+  if ($precioCliente < 0) jsonError('El precio no puede ser negativo');
   if ($cuenta !== null && !validarCuentaPedido($pdo, $id, $cuenta)) jsonError("La cuenta '$cuenta' no es válida para este pedido");
 
-  if (!$precio) {
-    $pRow = getProductoPrecio($pdo, $codigo);
-    if (!$pRow) jsonError('Producto no encontrado');
-    $precio = (float)$pRow['precio'];
-    if (!$nombre) $nombre = $pRow['nombre'];
-  }
-  if (!$nombre) {
-    $pRow = getProductoPrecio($pdo, $codigo);
-    $nombre = $pRow ? $pRow['nombre'] : $codigo;
-  }
+  $pRow = getProductoPrecio($pdo, $codigo);
+  if (!$pRow) jsonError('Producto no encontrado', 404);
+  if (!$nombre) $nombre = $pRow['nombre'];
+  // El precio lo fija el catálogo: solo un admin puede aplicar otro (aplicarPrecioItem)
+  $precio = aplicarPrecioItem($precioCliente, (float)$pRow['precio'], $authUser);
 
-  if (!checkStock($pdo, $codigo, $cantidad)) jsonError("Stock insuficiente");
+  // Stock híbrido (v11): con receta se mide contra la materia prima; sin
+  // receta, contra el producto terminado. El mensaje ya viene redactado.
+  $checkStock = checkStockVenta($pdo, $codigo, $cantidad);
+  if ($checkStock !== true) jsonError($checkStock);
 
   $subtotal = round($cantidad * $precio, 2);
+  // El precio ya incluye IVA: se guarda la línea desgranada para que el
+  // comprobante pueda mostrar base e impuesto por ítem.
+  $imp = calcularImpuestoItem($subtotal, $pRow['iva_porcentaje'] ?? 19);
 
   $pdo->beginTransaction();
   try {
-    $stmt = $pdo->prepare('INSERT INTO detalle_pedido (id_pedido, codigo_producto, nombre_producto, cantidad, precio_unitario, subtotal, notas, cuenta) VALUES (?,?,?,?,?,?,?,?)');
-    $stmt->execute([$id, $codigo, $nombre, $cantidad, $precio, $subtotal, $notas, $cuenta]);
+    $stmt = $pdo->prepare('INSERT INTO detalle_pedido
+        (id_pedido, codigo_producto, nombre_producto, cantidad, precio_unitario,
+         subtotal, notas, cuenta, unidad, tipo_item, iva_porcentaje, base_gravable, iva_valor)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)');
+    $stmt->execute([$id, $codigo, $nombre, $cantidad, $precio, $subtotal, $notas, $cuenta,
+                    $pRow['unidad'] ?: 'Und', $pRow['tipo_item'] ?: 'Bien',
+                    $imp['pct'], $imp['base'], $imp['iva']]);
+    // El id se captura YA, antes de cualquier otra escritura. Tres cosas lo
+    // pisaban y el POS recibía siempre `detalleId: 0` (y con 0,
+    // `res.detalleId || res.id` en pos_controller.js caía a undefined, así que
+    // el carrito nunca se marcaba sincronizado y reintentaba el sync):
+    //   · updatePedidoTotal() hace un UPDATE,
+    //   · auditLog() INSERTA en `auditoria` y ese id reemplaza al anterior,
+    //   · commit() deja LAST_INSERT_ID() en 0 en MariaDB 10.4.
+    $detalleId = (int)$pdo->lastInsertId();
     updatePedidoTotal($pdo, $id);
 
     auditLog($authUser, 'AGREGAR_PRODUCTO_PEDIDO', $id, null, [
@@ -186,7 +246,7 @@ if ($method === 'POST' && preg_match('#^pedidos/(.+)/items$#', $path, $m)) {
     ]);
 
     $pdo->commit();
-    jsonResponse(['success' => true, 'mensaje' => 'Item agregado al pedido', 'detalleId' => (int)$pdo->lastInsertId()]);
+    jsonResponse(['success' => true, 'mensaje' => 'Item agregado al pedido', 'detalleId' => $detalleId]);
   } catch (Exception $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
     jsonError('No se pudo agregar el item', 500);
@@ -197,16 +257,14 @@ if ($method === 'POST' && preg_match('#^pedidos/(.+)/items$#', $path, $m)) {
 if ($method === 'PUT' && preg_match('#^pedidos/items/(\d+)$#', $path, $m)) {
   $detId = (int)$m[1];
   $cantidad = (float)($body['cantidad'] ?? 0);
-  $precio = round((float)($body['precioUnitario'] ?? 0), 2);
+  $precioCliente = round((float)($body['precioUnitario'] ?? 0), 2);
   $notas = $body['notas'] ?? '';
   $cuenta = $body['cuenta'] ?? null;
   if ($cuenta === '') $cuenta = null;
   if (!$cantidad || $cantidad <= 0) jsonError('La cantidad debe ser mayor a 0');
-  if ($precio < 0) jsonError('El precio no puede ser negativo');
+  if ($precioCliente < 0) jsonError('El precio no puede ser negativo');
 
-  $subtotal = round($cantidad * $precio, 2);
-
-  $det = $pdo->prepare('SELECT p.estado, p.usuario_id, d.id_pedido, d.pagado, d.cantidad, d.precio_unitario, d.subtotal, d.nombre_producto FROM detalle_pedido d JOIN pedidos p ON p.id_pedido=d.id_pedido WHERE d.id=?');
+  $det = $pdo->prepare('SELECT p.estado, p.usuario_id, d.id_pedido, d.pagado, d.cantidad, d.codigo_producto, d.precio_unitario, d.subtotal, d.nombre_producto, d.unidad, d.tipo_item, d.iva_porcentaje FROM detalle_pedido d JOIN pedidos p ON p.id_pedido=d.id_pedido WHERE d.id=?');
   $det->execute([$detId]);
   $row = $det->fetch();
   if (!$row) jsonError('Item no encontrado', 404);
@@ -219,9 +277,35 @@ if ($method === 'PUT' && preg_match('#^pedidos/items/(\d+)$#', $path, $m)) {
     jsonError('No se puede modificar un item que ya fue pagado. Anule el pago primero.', 409);
   }
 
+  // El precio lo fija el catálogo: solo un admin puede aplicar otro.
+  // $precioActual (precio ya guardado) evita rechazar una simple edición de
+  // cantidad sobre un ítem cuyo precio ajustó un admin.
+  $prodRow = getProductoPrecio($pdo, $row['codigo_producto']);
+  $precioCatalogo = $prodRow ? (float)$prodRow['precio'] : (float)$row['precio_unitario'];
+  $precio = aplicarPrecioItem($precioCliente, $precioCatalogo, $authUser, (float)$row['precio_unitario']);
+  $subtotal = round($cantidad * $precio, 2);
+
+  // Si el producto sigue en catálogo se toman sus datos fiscales actuales;
+  // si fue borrado, se conservan los que ya traía la línea.
+  if ($prodRow) {
+    $unidad = $prodRow['unidad'] ?: 'Und';
+    $tipo   = $prodRow['tipo_item'] ?: 'Bien';
+    $pctIva = (float)$prodRow['iva_porcentaje'];
+  } else {
+    $unidad = $row['unidad'] ?: 'Und';
+    $tipo   = $row['tipo_item'] ?: 'Bien';
+    $pctIva = (float)$row['iva_porcentaje'];
+  }
+  $imp = calcularImpuestoItem($subtotal, $pctIva);
+
   $pdo->beginTransaction();
   try {
-    $pdo->prepare('UPDATE detalle_pedido SET cantidad=?, precio_unitario=?, subtotal=?, notas=?, cuenta=? WHERE id=?')->execute([$cantidad, $precio, $subtotal, $notas, $cuenta, $detId]);
+    $pdo->prepare('UPDATE detalle_pedido
+                    SET cantidad=?, precio_unitario=?, subtotal=?, notas=?, cuenta=?,
+                        unidad=?, tipo_item=?, iva_porcentaje=?, base_gravable=?, iva_valor=?
+                  WHERE id=?')
+        ->execute([$cantidad, $precio, $subtotal, $notas, $cuenta,
+                   $unidad, $tipo, $imp['pct'], $imp['base'], $imp['iva'], $detId]);
     updatePedidoTotal($pdo, $row['id_pedido']);
 
     auditLog($authUser, 'MODIFICAR_PRODUCTO_PEDIDO', $row['id_pedido'], null, [

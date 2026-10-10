@@ -15,7 +15,7 @@ const PosView = {
       <div class="pos-pagos-toggle" data-action="pos-toggle-pagos" type="button">📋 Pagos (${pd.pagos.length}) ▾</div>
       <div class="pos-pagos-list" id="posPagosList" style="display:none;">
         ${pd.pagos.map(p => `<div class="pos-pago-row">
-          <span>${p.itemNombre ? '✔ ' + App.escapeHtml(p.itemNombre) : '💰 ' + (p.notas || 'Abono')} <small>${p.metodoPago || ''}</small></span>
+          <span>${p.itemNombre ? '✔ ' + App.escapeHtml(p.itemNombre) : '💰 ' + App.escapeHtml(p.notas || 'Abono')} <small>${p.metodoPago || ''}</small></span>
           <strong>${App.fmt(p.monto)}</strong>
         </div>`).join('')}
       </div>
@@ -113,12 +113,12 @@ const PosView = {
         ${i.notas ? `<div class="pos-ti-notes">${App.escapeHtml(i.notas)}</div>` : ''}
         <div class="pos-ti-bottom">
           <div class="pos-qty">
-            <button class="pos-q-btn minus" data-action="pos-qty" data-codigo="${i.codigo}" data-d="-1" type="button">−</button>
+            <button class="pos-q-btn minus" data-action="pos-qty" data-codigo="${App.escapeHtml(i.codigo)}" data-d="-1" type="button">−</button>
             <span class="pos-q-val">${i.cant}</span>
-            <button class="pos-q-btn plus" data-action="pos-qty" data-codigo="${i.codigo}" data-d="1" type="button">+</button>
+            <button class="pos-q-btn plus" data-action="pos-qty" data-codigo="${App.escapeHtml(i.codigo)}" data-d="1" type="button">+</button>
           </div>
           <span class="pos-ti-sub">${App.fmt(i.precio * i.cant)}</span>
-          <button class="pos-ti-del" data-action="pos-qty" data-codigo="${i.codigo}" data-d="-${i.cant}" type="button" title="Quitar del carrito">✕</button>
+          <button class="pos-ti-del" data-action="pos-qty" data-codigo="${App.escapeHtml(i.codigo)}" data-d="-${i.cant}" type="button" title="Quitar del carrito">✕</button>
         </div>
         ${accBtns}
       </div>`;

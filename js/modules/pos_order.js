@@ -44,7 +44,7 @@ Object.assign(App, {
     try {
       this._pos.productos = await apiGet('/productos');
     } catch(e) {
-      container.innerHTML = `<div class="pos-layout"><div class="pos-left" style="display:flex;align-items:center;justify-content:center;color:var(--danger);">Error: ${e.message}</div></div>`;
+      container.innerHTML = `<div class="pos-layout"><div class="pos-left" style="display:flex;align-items:center;justify-content:center;color:var(--danger);">Error: ${App.escapeHtml(e.message)}</div></div>`;
       return;
     }
 
@@ -68,7 +68,12 @@ Object.assign(App, {
             this._pos.splitMode = true;
           }
         }
-      } catch(e) {}
+      } catch(e) {
+        // No seguir: un carrito vacío para un pedido que sí tiene ítems haría
+        // que el cajero los volviera a agregar y se cobraran dos veces.
+        container.innerHTML = `<div class="pos-layout"><div class="pos-left" style="display:flex;align-items:center;justify-content:center;color:var(--danger);">No pude cargar el pedido: ${App.escapeHtml(e.message)}</div></div>`;
+        return;
+      }
     }
 
     container.innerHTML = this._posLayout();
@@ -389,10 +394,17 @@ Object.assign(App, {
       }
     }
     const currentIds = this._pos.cart.map(i => i.detalleId).filter(Boolean);
+    const noBorrados = [];
     for (const oldId of this._pos.originalDetalleIds) {
       if (!currentIds.includes(oldId)) {
-        try { await apiDelete(`/pedidos/items/${oldId}`); } catch(e) {}
+        try { await apiDelete(`/pedidos/items/${oldId}`); } catch(e) { noBorrados.push(oldId); }
       }
+    }
+    // No silenciar: un item que no se borra sigue en el pedido y se cobraría dos
+    // veces. Se lanza para que el caller aborte (los tres llaman con alert+return)
+    // y originalDetalleIds no se actualiza, de modo que se reintenta después.
+    if (noBorrados.length) {
+      throw new Error(`No se pudieron quitar ${noBorrados.length} item(s) del pedido (#${noBorrados.join(', #')})`);
     }
     this._pos.originalDetalleIds = [...currentIds];
     return pid;

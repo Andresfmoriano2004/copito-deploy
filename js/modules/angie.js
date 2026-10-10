@@ -16,7 +16,7 @@ Object.assign(App, {
       this.gastoResumen = resumen;
       this._renderGastoPersonal();
     } catch (e) {
-      el.innerHTML = `<div class="empty-state">Error: ${e.message}</div>`;
+      el.innerHTML = `<div class="empty-state">Error: ${App.escapeHtml(e.message)}</div>`;
     }
   },
 
@@ -126,7 +126,7 @@ Object.assign(App, {
     // Load products for datalist
     apiGet('/productos').then(prods => {
       const dl = document.getElementById('angieProductosList');
-      if (dl) dl.innerHTML = prods.map(p => `<option value="${p.nombre}">${p.codigo}</option>`).join('');
+      if (dl) dl.innerHTML = prods.map(p => `<option value="${App.escapeHtml(p.nombre)}">${App.escapeHtml(p.codigo)}</option>`).join('');
     }).catch(() => {});
   },
 
@@ -153,7 +153,12 @@ Object.assign(App, {
         const prods = await apiGet('/productos');
         const found = prods.find(p => p.nombre.toLowerCase() === prodInput.toLowerCase());
         if (found) codigo = found.codigo;
-      } catch(e) {}
+      } catch(e) {
+        // Avisar que la consulta falló, no que el producto no existe: si el
+        // catálogo no se pudo leer, "Producto no encontrado" sería mentira.
+        this.showMessage('angieMsg2', 'No pude consultar el catálogo de productos: ' + e.message, 'error');
+        return;
+      }
     }
     if (!codigo) {
       this.showMessage('angieMsg2', 'Producto no encontrado. Seleccione de la lista.', 'error');

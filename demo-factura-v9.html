@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demo v9 - Comprobante emitido</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; background: #f4f5f7; }
+    .demo-bar { padding: 10px 16px; background: #C2185B; color: #fff; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="demo-bar">DEMO TEMPORAL — payload real de <code>GET /api/pedidos/{id}</code> con comprobante emitido (v9)</div>
+
+  <script src="js/ticket.js"></script>
+  <script>
+    const pedidoFacturado = {
+      id: 'PED-261007-A1B2C',
+      lugar: 'Mesa 3',
+      cliente: 'María González',
+      notas: 'Pedido para llevar',
+      estado: 'Cerrado',
+      fechaHoraCierre: '07/10/2026 10:42 AM',
+      vendedor: 'Angie',
+      total: 38500,
+      metodoPago: 'Efectivo',
+      numeroFactura: 'FEV-000001',
+      formaPago: 'Contado',
+      clienteFiscal: {
+        nit: '1234567890', dv: '5',
+        direccion: 'Calle 10 #20-30',
+        email: 'maria@ejemplo.com',
+        regimen: 'Común'
+      },
+      totales: { base: 32352.94, descuentos: 0, iva: 6147.06, total: 38500 },
+      factura: {
+        numero: 'FEV-000001', prefijo: 'FEV', consecutivo: 1,
+        fechaEmision: '2026-10-07 10:42:00',
+        fechaEmisionFmt: '07/10/2026 10:42 AM',
+        estado: 'Emitida',
+        totalBase: 32352.94, totalDescuentos: 0, totalIva: 6147.06, total: 38500,
+        formaPago: 'Contado',
+        resolucion: '187640123456789',
+        vigenciaHasta: '2026-12-31',
+        anuladaMotivo: null
+      },
+      empresa: {
+        nombre: 'Dark Pink Coffee',
+        razon: 'Dark Pink Coffee S.A.S.',
+        subtitulo: 'Cafetería & Pastelería Artesanal',
+        nit: '901234567', dv: '8',
+        direccion: 'Calle Principal # 10-20',
+        ciudad: 'Bogotá D.C.',
+        telefono: '300 123 4567',
+        regimen: 'Común',
+        actividad: '561101 - Restaurantes',
+        pie: '¡Gracias por su visita!',
+        pie2: 'Vuelva pronto ☕'
+      },
+      items: [
+        { nombre_producto: 'Latte Frío 12oz', cantidad: 2, precio_unitario: 9500, subtotal: 19000,
+          notas: 'Sin azúcar', unidad: 'Und', tipoItem: 'Bien',
+          ivaPorcentaje: 19, baseGravable: 15966.39, ivaValor: 3033.61 },
+        { nombre_producto: 'Cheesecake Frutos Rojos', cantidad: 1, precio_unitario: 12000, subtotal: 12000,
+          unidad: 'Und', tipoItem: 'Bien',
+          ivaPorcentaje: 19, baseGravable: 10084.03, ivaValor: 1915.97 },
+        { nombre_producto: 'Croissant de Almendra', cantidad: 1, precio_unitario: 7500, subtotal: 7500,
+          unidad: 'Und', tipoItem: 'Bien',
+          ivaPorcentaje: 19, baseGravable: 6302.52, ivaValor: 1197.48 }
+      ],
+      pagos: [ { metodo_pago: 'Efectivo', monto: 38500 } ]
+    };
+
+    Ticket.mostrarModal(pedidoFacturado, { cambio: 11500 });
+  </script>
+</body>
+</html>

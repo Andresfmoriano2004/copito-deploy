@@ -28,7 +28,7 @@ const PosController = {
       const productos = await apiGet('/productos');
       Store.set('pos.productos', productos);
     } catch (e) {
-      container.innerHTML = `<div class="pos-layout"><div class="pos-left" style="display:flex;align-items:center;justify-content:center;color:var(--danger);">Error: ${e.message}</div></div>`;
+      container.innerHTML = `<div class="pos-layout"><div class="pos-left" style="display:flex;align-items:center;justify-content:center;color:var(--danger);">Error: ${App.escapeHtml(e.message)}</div></div>`;
       return;
     }
 
@@ -53,7 +53,12 @@ const PosController = {
             Store.set('pos.splitMode', true);
           }
         }
-      } catch (e) { /* ignore */ }
+      } catch (e) {
+        // No seguir: un carrito vacío para un pedido que sí tiene ítems haría
+        // que el cajero los volviera a agregar y se cobraran dos veces.
+        container.innerHTML = `<div class="pos-layout"><div class="pos-left" style="display:flex;align-items:center;justify-content:center;color:var(--danger);">No pude cargar el pedido: ${App.escapeHtml(e.message)}</div></div>`;
+        return;
+      }
     }
 
     container.innerHTML = PosView.layout({ pedidoId, ...Store.get('pos.pedidoData') });
@@ -170,13 +175,22 @@ const PosController = {
     if (!Store.get('pos.cart').length) return;
     if (!confirm('¿Vaciar el carrito? Se borrarán los items no cobrados.')) return;
     const pid = Store.get('pos.pedidoId');
+    const cart = Store.get('pos.cart');
+    const fallidos = [];
     if (pid) {
-      const cart = Store.get('pos.cart');
       for (const i of cart) {
         if (i.detalleId) {
-          try { await apiDelete(`/pedidos/items/${i.detalleId}`); } catch (e) {}
+          try { await apiDelete(`/pedidos/items/${i.detalleId}`); } catch (e) { fallidos.push(i); }
         }
       }
+    }
+    // Lo que no se borró sigue en el servidor: se conserva en el carrito para
+    // no ocultarlo (se cobraría después sin que el cajero lo viera).
+    if (fallidos.length) {
+      Store.set('pos.cart', fallidos);
+      App.showMessage('posMsg', `⚠️ No se pudieron quitar ${fallidos.length} item(s) del pedido. Revise la comanda.`, 'error');
+      this._renderProducts();
+      return;
     }
     Store.batch({ 'pos.cart': [], 'pos.originalDetalleIds': [] });
     this._renderProducts();
@@ -191,12 +205,20 @@ const PosController = {
     App.mostrarModalPago({
       total: this._subtotal(),
       titulo: '💳 Cobrar Pedido',
-      onConfirm: (pagos, cambio) => {
-        cerrarPedido(Store.get('pos.pedidoId'), pagos, cambio)
+      // El cierre total es el único punto que emite comprobante (v9), así que
+      // es el único que pide los datos del adquirente.
+      clienteFiscal: {},
+      onConfirm: (pagos, cambio, fiscal) => {
+        const pid = Store.get('pos.pedidoId');
+        // Se guardan ANTES de cerrar: al cobrar se emite la factura y el
+        // pedido queda inmutable (409 sobre cualquier edición posterior).
+        const guardar = fiscal ? apiPut(`/pedidos/${pid}`, fiscal) : Promise.resolve();
+        guardar
+          .then(() => cerrarPedido(pid, pagos, cambio))
           .then(res => {
             App.cerrarModal();
             App.showMessage('mesaMsg', res.mensaje, 'success');
-            if (window.Ticket) Ticket.mostrarModal(Store.get('pos.pedidoId'), { cambio });
+            if (window.Ticket) Ticket.mostrarModal(pid, { cambio });
             Store.batch({ 'pos.cart': [], 'pos.pedidoId': null });
             PedidosController.cargarVistaMesas();
           })
@@ -252,10 +274,17 @@ const PosController = {
       }
     }
     Store.set('pos.cart', newCart);
+    const noBorrados = [];
     for (const origId of originalIds) {
       if (!newCart.find(i => i.detalleId === origId)) {
-        try { await apiDelete(`/pedidos/items/${origId}`); } catch (e) {}
+        try { await apiDelete(`/pedidos/items/${origId}`); } catch (e) { noBorrados.push(origId); }
       }
+    }
+    // No silenciar: un item que no se borra sigue en el pedido y se cobraría
+    // dos veces. Se lanza para que el caller aborte (todos hacen alert+return)
+    // y originalDetalleIds no se actualiza, de modo que se reintenta después.
+    if (noBorrados.length) {
+      throw new Error(`No se pudieron quitar ${noBorrados.length} item(s) del pedido (#${noBorrados.join(', #')})`);
     }
     Store.set('pos.originalDetalleIds', newCart.filter(i => i.detalleId).map(i => i.detalleId));
   },

@@ -1,3 +1,8 @@
+---
+description: Diseña e implementa pantallas, estilos y estados de UI en el frontend vanilla de Copito POS, sin tocar PHP ni la base de datos
+mode: all
+---
+
 # Agente de Frontend — Copito POS
 
 ## 0. Solicitud (rellenar antes de cada uso)
@@ -53,12 +58,16 @@ ahí — no lo simules ni inventes su forma de respuesta.
 - **PWA:** `sw.js` con `CACHE_NAME` y `STATIC_ASSETS`.
 
 **Identidad visual:**
-- Color primario: `#E91E78` (rosa) sobre fondo carbón/negro (modo oscuro).
-- El rosa es acento, no fondo dominante — úsalo en CTAs, estados activos y
-  highlights, no en superficies grandes.
+- Sistema de diseño completo en `DESIGN.md`: manda sobre cualquier otro
+  archivo. Paleta Coral Cream — coral `#ff8b8b` + crema `#fff8ea`, tipografía
+  `system-ui`, radius 4/8/12, motion 120/180/260 ms.
+- El coral es acento, no fondo dominante — úsalo en CTAs, estados activos y
+  highlights, no en superficies grandes. Sobre coral el texto va con
+  `--on-primary` (#2b1212); el coral como texto sobre superficies claras va
+  con `--primary-strong` (#7a3f3f).
 - Precios en formato `$5.000` (sin espacio, punto de miles, sin decimales).
-- Contraste mínimo WCAG AA para texto sobre rosa y sobre negro; verifica antes
-  de usar rosa como color de texto sobre fondo carbón (puede no pasar el ratio).
+- Contraste mínimo WCAG AA: verifica el par texto/fondo antes de usarlo.
+  `--primary` puro sobre crema da 2.13:1 y NO sirve para texto.
 
 **Convenciones inviolables:**
 1. Dinero en centavos en JS (`toCents`/`fromCents`) si el valor se calcula o
@@ -67,7 +76,9 @@ ahí — no lo simules ni inventes su forma de respuesta.
 3. `App.state.currentPedidoId` y `Store.get('pedidos.currentId')` siempre
    sincronizados si tu cambio toca el pedido activo.
 4. URLs de API dinámicas (`location.origin` + path); jamás hardcodear dominios.
-5. CSS-only transitions; prohibidos `@keyframes`/animaciones JS.
+5. Transiciones CSS; `@keyframes` prohibidos **salvo `spin`** (es el único
+   documentado en `css/style.css` y es el indicador de carga real
+   `.loading-spinner`). Sin animaciones en JS.
 6. El POS es la única vista de pedido — no crees una vista de detalle paralela.
 7. Un mismo `data-action` no debe tener dos handlers registrados (duplica
    ejecuciones).
@@ -102,7 +113,7 @@ ahí — no lo simules ni inventes su forma de respuesta.
 | 1. Diseño (si aplica) | Dónde vive el cambio, qué patrón sigue (nuevo/legacy), qué estado toca, qué rol lo ve | Propuesta breve |
 | 2. Implementación | Vista/estilo/lógica, siguiendo el patrón del bloque 3 | Diff por archivo |
 | 3. Consistencia visual | Verifica contraste, uso del rosa como acento, formato de precios, responsive | Checklist |
-| 4. Pruebas | `node -c` al JS tocado; prueba funcional del flujo en el navegador; revisa consola | Resultado por check |
+| 4. Pruebas | `php -l` a cada PHP tocado; carga la app y comprueba que la consola no tenga errores nuevos (**no hay Node instalado**: `node -c` no está disponible) | Resultado por check |
 | 5. Cierre | Si surgió un error nuevo evitable en el futuro, propón la línea para el bloque 6 | Línea propuesta, la agrego yo |
 
 ## 6. Errores comunes a evitar (aprendidos del proyecto)

@@ -31,7 +31,7 @@ Object.assign(App, {
       this.materiaPrimaData = await apiGet('/materia-prima');
       this._renderMateriaPrima();
     } catch (e) {
-      el.innerHTML = `<div class="empty-state">Error: ${e.message}</div>`;
+      el.innerHTML = `<div class="empty-state">Error: ${App.escapeHtml(e.message)}</div>`;
     }
   },
 
@@ -52,7 +52,7 @@ Object.assign(App, {
               <div class="stat-label">Ingredientes</div>
             </div>
             <div class="stat-card">
-              <div class="stat-value" style="color:${stats.stockBajo > 0 ? 'var(--danger)' : 'var(--success)'}">${stats.stockBajo}</div>
+              <div class="stat-value" style="color:${stats.stockBajo > 0 ? 'var(--danger)' : 'var(--success-text)'}">${stats.stockBajo}</div>
               <div class="stat-label">Stock bajo</div>
             </div>
             <div class="stat-card">
@@ -157,7 +157,7 @@ Object.assign(App, {
     `);
     obtenerUnidades().then(unidades => {
       const dl = document.getElementById('unidadesMpList');
-      if (dl) dl.innerHTML = unidades.map(u => `<option value="${u}">`).join('');
+      if (dl) dl.innerHTML = unidades.map(u => `<option value="${App.escapeHtml(u)}">`).join('');
     }).catch(() => {});
     document.getElementById('mpCodigo')?.focus();
   },

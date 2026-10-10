@@ -14,6 +14,8 @@ if ($method === 'POST' && preg_match('#^pedidos/(.+)/cerrar-cuenta$#', $path, $m
   $pagos = parsePagosFromBody($body['pagos'] ?? []);
   $nuevo = round(array_sum(array_column($pagos, 'monto')), 2);
 
+  if (!cajaAbierta($pdo)) jsonError('No hay caja abierta. Abra caja antes de registrar cobros.', 409);
+
   $pdo->beginTransaction();
   try {
     $pedRow = fetchPedido($pdo, $id);
@@ -38,14 +40,15 @@ if ($method === 'POST' && preg_match('#^pedidos/(.+)/cerrar-cuenta$#', $path, $m
     registrarVentaEnCaja($pdo, $id, $pagos, "Cuenta $descCuenta de $id", $authUser['id']);
 
     $soloPend = getUnpaidItems($pdo, $id, $cuenta);
-    if ($soloPend) registrarMovimientosStock($pdo, $soloPend, "Pedido $id (Cuenta $descCuenta)", $authUser['id']);
+    $saldados = filterFullyPaidItems($pdo, $soloPend);
+    if ($saldados) registrarMovimientosStock($pdo, $saldados, "Pedido $id (Cuenta $descCuenta)", $authUser['id']);
 
     closeOrderIfPaid($pdo, $id, $pedRow['total']);
     $pdo->commit();
   } catch (Exception $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
     error_log('Copito error cerrando cuenta en pedido ' . $id . ': ' . $e->getMessage());
-    jsonError('No se pudo cerrar la cuenta: ' . $e->getMessage(), 500);
+    jsonError('No se pudo cerrar la cuenta', 500);
   }
 
   jsonResponse(['success' => true, 'mensaje' => "Cuenta $descCuenta cerrada por $ " . number_format($totalCuenta, 0, ',', '.')]);

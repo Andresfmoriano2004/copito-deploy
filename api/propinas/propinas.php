@@ -54,7 +54,8 @@ if ($method === 'POST' && $path === 'propinas') {
     auditLog($authUser, 'REGISTRAR_PROPINA', $pedidoId, $lugar, ['monto' => $monto, 'metodo' => $metodo]);
   } catch (Exception $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
-    jsonError($e->getMessage(), 500);
+    error_log('Copito error registrando propina: ' . $e->getMessage());
+    jsonError('No se pudo registrar la propina', 500);
   }
 
   $desc = $pedidoId ? "Propina de Pedido $pedidoId" : 'Propina general';

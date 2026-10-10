@@ -23,6 +23,11 @@ function csvOut($filename, $headers, $rows) {
 // ─── GET /api/reportes/exportar-excel?tipo=movimientos|ventas|inventario ──
 if ($method === 'GET' && $path === 'reportes/exportar-excel') {
   $tipo = $_GET['tipo'] ?? '';
+  // movimientos/ventas/inventario exponen histórico completo y costos → solo admin.
+  // 'auditoría' sigue disponible para el vendedor (se auto-filtra en la línea 76).
+  if (in_array($tipo, ['movimientos', 'ventas', 'inventario'], true) && ($authUser['rol'] ?? '') !== 'admin') {
+    jsonError('Requiere rol de administrador para exportar movimientos, ventas o inventario', 403);
+  }
   $desde = $_GET['desde'] ?? '';
   $hasta = $_GET['hasta'] ?? '';
   $sufijo = ($desde || $hasta) ? '_' . ($desde ?: 'ini') . '_' . ($hasta ?: 'hoy') : '_' . date('Y-m-d');

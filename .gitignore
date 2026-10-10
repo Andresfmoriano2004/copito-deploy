@@ -6,6 +6,12 @@
 !.env.example
 
 # Imágenes runtime subidas desde la app (se respaldan con Hostinger, no en git)
+# Ruta única: uploads/productos/ en la raíz — ahí sube
+# api/productos/productos.php y ahí es donde Apache las sirve; api/uploads/ era
+# un residuo histórico (bug desde 4b23b33) y ya no se usa.
+# Un patrón con barra interna y sin barra inicial va anclado a la raíz del repo,
+# así que este sí coincide con la ruta real. Las fotos de catálogo ya commiteadas
+# siguen trackeadas: el .gitignore solo tapa lo no rastreado.
 uploads/productos/*
 !uploads/productos/.htaccess
 
@@ -28,6 +34,8 @@ test_*.php
 debug*.php
 fix_*.php
 check_*.php
+# ...pero la suite del proyecto SÍ se commitea (run_all.php la ejecuta)
+!tests/test_*.php
 
 # Dependencias (el proyecto no usa, pero si algún día se añaden)
 vendor/

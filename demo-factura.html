@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demo - Factura de Venta</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; background: #f4f5f7; }
+    .demo-bar { padding: 10px 16px; background: #C2185B; color: #fff; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="demo-bar">Demo con datos de ejemplo — así se ve la <strong>FACTURA DE VENTA</strong> que imprime el POS</div>
+
+  <script src="js/ticket.js"></script>
+  <script>
+    // Pedido de ejemplo (mismo formato que entrega la API)
+    const pedidoEjemplo = {
+      id: 1042,
+      fechaHoraCierre: '07/10/2026 10:42 AM',
+      lugar: 'Mesa 3',
+      vendedor: 'Angie',
+      cliente: 'María González',
+      notas: 'Pedido para llevar',
+      total: 38500,
+      items: [
+        { nombre_producto: 'Latte Frío 12oz', cantidad: 2, precio_unitario: 9500, subtotal: 19000, notas: 'Sin azúcar' },
+        { nombre_producto: 'Cheesecake Frutos Rojos', cantidad: 1, precio_unitario: 12000, subtotal: 12000 },
+        { nombre_producto: 'Croissant de Almendra', cantidad: 1, precio_unitario: 7500, subtotal: 7500 }
+      ],
+      pagos: [
+        { metodo_pago: 'Efectivo', monto: 50000 }
+      ]
+    };
+
+    // Recibido $50.000 → cambio $11.500
+    Ticket.mostrarModal(pedidoEjemplo, { cambio: 11500 });
+  </script>
+</body>
+</html>

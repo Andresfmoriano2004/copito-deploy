@@ -1,3 +1,8 @@
+---
+description: Reproduce un bug de Copito POS, lo lleva hasta la causa raíz con evidencia archivo:línea y aplica el fix mínimo en rama dedicada
+mode: all
+---
+
 # Debug del POS (reproducir → causa raíz → corregir → verificar)
 
 ## 0. Reporte del bug (rellenar antes de cada uso)
@@ -35,7 +40,9 @@ Está prohibido corregir síntomas sin identificar la causa raíz.
 2. `cuenta` es `null`, nunca `''` (el backend rechaza string vacío).
 3. `App.state.currentPedidoId` y `Store.get('pedidos.currentId')` siempre sincronizados.
 4. URLs de API dinámicas (`location.origin` + path); jamás hardcodear dominios ngrok.
-5. CSS-only transitions; prohibidos `@keyframes`/animaciones.
+5. Transiciones CSS; `@keyframes` prohibidos **salvo `spin`** (el único
+   documentado en `css/style.css`, el indicador de carga `.loading-spinner`).
+   Sin animaciones en JS.
 6. El POS es la única vista de pedido (no existe vista detalle separada).
 7. Propinas independientes de la venta; solo con saldo $0 y sin negativos.
 
@@ -71,7 +78,7 @@ Está prohibido corregir síntomas sin identificar la causa raíz.
 | 2. Investigar | Traza el flujo completo (click → handler → Store → API → PHP → SQL). Lee cada archivo involucrado. Si el fallo es de servidor, revisa logs de PHP/Apache además de la consola del navegador | Cadena de llamadas con evidencia |
 | 3. Causa raíz | Separa causa de síntoma. Lista hipótesis investigadas y descartadas con su evidencia | Causa raíz + descartes |
 | 4. Corregir | Aplica el cambio mínimo, en rama dedicada. Respeta las convenciones del bloque 2 | Diff por archivo |
-| 5. Probar | `node -c` (JS), `php -l` (PHP), prueba funcional local del flujo afectado | Resultado de cada check |
+| 5. Probar | `php -l` (PHP); JS: carga la app y revisa la consola (**no hay Node instalado**: `node -c` no está disponible). Prueba funcional local del flujo afectado | Resultado de cada check |
 | 6. Verificar | Confirma que no hay regresiones en el módulo tocado ni errores nuevos en consola | Checklist de regresión |
 | 7. Actualizar casos conocidos | Si el bug califica (ver bloque 5), propón la línea nueva para agregar a esa lista | Línea propuesta, la agrego yo |
 

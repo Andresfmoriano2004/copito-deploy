@@ -110,7 +110,7 @@ Object.assign(App, {
         </tr>`).join('')}</tbody></table>`;
     } else { itemsHtml = '<p style="color:var(--text-muted);">Sin items</p>'; }
     modal.innerHTML = `<div style="background:white;border-radius:12px;padding:30px;max-width:600px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;">
-      <h3 style="color:var(--primary);margin-bottom:5px;">${this.escapeHtml(pedido.id)}</h3>
+      <h3 style="color:var(--primary-strong);margin-bottom:5px;">${this.escapeHtml(pedido.id)}</h3>
       <div class="pedido-meta" style="margin-bottom:15px;">
         <span class="pedido-meta-item">🍽️ ${this.escapeHtml(pedido.lugar)}</span>
         <span class="pedido-meta-item">👤 ${pedido.cliente ? this.escapeHtml(pedido.cliente) : 'Sin cliente'}</span>
@@ -195,7 +195,7 @@ Object.assign(App, {
     modal.className = 'modal-backdrop';
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:2000;font-family:var(--font);';
     modal.innerHTML = `<div style="background:white;border-radius:12px;padding:30px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-      <h3 style="color:var(--primary);margin-bottom:20px;">Nuevo Pedido</h3>
+      <h3 style="color:var(--primary-strong);margin-bottom:20px;">Nuevo Pedido</h3>
       <div class="form-group" style="margin-bottom:15px;"><label for="nuevoLugar">Lugar</label>
         <select id="nuevoLugar" class="form-select">${this.LUGARES.map(l => `<option value="${l.id}">${l.icon} ${l.label}${this.state.pedidosActivos.find(p => p.lugar === l.id) ? ' (ocupado)' : ''}</option>`).join('')}</select></div>
       <div class="form-group" style="margin-bottom:20px;"><label for="nuevoCliente">Cliente (opcional)</label><input id="nuevoCliente" type="text" placeholder="Nombre del cliente"></div>

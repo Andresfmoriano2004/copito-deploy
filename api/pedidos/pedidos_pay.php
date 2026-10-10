@@ -13,6 +13,8 @@ if ($method === 'POST' && preg_match('#^pedidos/(.+)/cerrar$#', $path, $m)) {
   if (!$pagos) jsonError('Método(s) de pago requerido(s)');
   $nuevoPago = round(array_sum(array_column($pagos, 'monto')), 2);
 
+  if (!cajaAbierta($pdo)) jsonError('No hay caja abierta. Abra caja antes de registrar cobros.', 409);
+
   $pdo->beginTransaction();
   try {
     $pedRow = fetchPedido($pdo, $id);
@@ -37,21 +39,29 @@ if ($method === 'POST' && preg_match('#^pedidos/(.+)/cerrar$#', $path, $m)) {
     allocatePaymentsToItems($pdo, $id, null, $soloPend, $nuevoPago, $metodoNotas, $authUser['id'], $pedRow['lugar']);
     registrarVentaEnCaja($pdo, $id, $pagos, "Pedido $id", $authUser['id']);
 
-    if ($soloPend) registrarMovimientosStock($pdo, $soloPend, "Pedido $id", $authUser['id']);
+    // Solo descontar stock y marcar pagados los items que quedaron realmente saldados.
+    // Con un pago parcial los items impagos NO deben descontar inventario ni quedar
+    // bloqueados para editar (ver filtro tras allocatePaymentsToItems).
+    $saldados = filterFullyPaidItems($pdo, $soloPend);
+    if ($saldados) registrarMovimientosStock($pdo, $saldados, "Pedido $id", $authUser['id']);
 
     $metodos = implode(', ', array_map(fn($p) => $p['metodoPago'], $pagos));
     $pedidoCerrado = $totalConPago >= $total - 0.01;
     if ($pedidoCerrado) {
       $pdo->prepare("UPDATE pedidos SET estado='Cerrado', fecha_cierre=NOW(), metodo_pago=? WHERE id_pedido=?")->execute([$metodos, $id]);
+      emitirFacturaSiCorresponde($pdo, $id, $authUser['id']);
     } else {
-      $pdo->prepare("UPDATE pedidos SET estado='Abierto', metodo_pago=? WHERE id_pedido=?")->execute([$metodos, $id]);
+      // `AND numero_factura IS NULL`: un pedido ya facturado no se reabre.
+      // Reabrirlo volvería editables sus líneas y el comprobante dejaría de
+      // corresponderse con lo realmente cobrado.
+      $pdo->prepare("UPDATE pedidos SET estado='Abierto', metodo_pago=? WHERE id_pedido=? AND numero_factura IS NULL")->execute([$metodos, $id]);
     }
     $pdo->commit();
     auditLog($authUser, 'REGISTRAR_PAGO', $id, $pedRow['lugar'], ['monto' => $nuevoPago, 'total' => $total, 'pagado' => $totalConPago, 'pendiente' => $saldoPendiente, 'metodos' => $metodos]);
   } catch (Exception $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
     error_log('Copito error cerrando pedido ' . $id . ': ' . $e->getMessage());
-    jsonError('No se pudo cerrar el pedido: ' . $e->getMessage(), 500);
+    jsonError('No se pudo cerrar el pedido', 500);
   }
 
   $mensaje = $totalConPago >= $total - 0.01 ? 'Pedido cerrado correctamente' : 'Pago parcial registrado correctamente';

@@ -47,7 +47,7 @@ const PedidosView = {
         }).join('')}</div></div>`;
     }
     return `<div style="background:white;border-radius:12px;padding:30px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);" data-codigo="${App.escapeHtml(codigo)}">
-      <h3 style="color:var(--primary);margin-bottom:5px;">${App.escapeHtml(nombre)}</h3>
+      <h3 style="color:var(--primary-strong);margin-bottom:5px;">${App.escapeHtml(nombre)}</h3>
       <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:20px;">Precio base: <strong>${App.fmt(precioBase)}</strong></p>
       ${accountHtml}
       <div class="form-grid" style="grid-template-columns:1fr 1fr;">
@@ -78,7 +78,7 @@ const PedidosView = {
         }).join('')}</div></div>`;
     }
     return `<div style="background:white;border-radius:12px;padding:30px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-      <h3 style="color:var(--primary);margin-bottom:20px;">Modificar Item</h3>
+      <h3 style="color:var(--primary-strong);margin-bottom:20px;">Modificar Item</h3>
       <p style="color:var(--text-muted);margin-bottom:15px;">${App.escapeHtml(item.nombre)}</p>
       ${accountHtml}
       <div class="form-grid" style="grid-template-columns:1fr 1fr;">
@@ -96,7 +96,7 @@ const PedidosView = {
   cerrarPedidoModal(pedido, saldo, totalPagado) {
     const itemsPend = pedido.items.filter(i => !i.pagado);
     const itemsHtml = itemsPend.map(i => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:0.9rem;"><span>${App.escapeHtml(i.nombre)} x${i.cantidad}</span><strong>${App.fmt(i.subtotal)}</strong></div>`).join('');
-    return `<h3 style="color:var(--primary);margin-bottom:10px;">🔒 Cerrar Pedido</h3>
+    return `<h3 style="color:var(--primary-strong);margin-bottom:10px;">🔒 Cerrar Pedido</h3>
       <p style="color:var(--text-muted);margin-bottom:10px;font-size:0.9rem;">Productos pendientes por pagar:</p>
       <div style="max-height:200px;overflow-y:auto;margin-bottom:15px;">${itemsHtml}</div>
       <div style="background:var(--primary-bg-light);padding:10px;border-radius:8px;margin-bottom:15px;">
@@ -116,7 +116,7 @@ const PedidosView = {
 
   editarPedidoModal(pedido, lugares) {
     return `<div style="background:white;border-radius:12px;padding:30px;max-width:450px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-      <h3 style="color:var(--primary);margin-bottom:20px;">✏️ Editar Pedido</h3>
+      <h3 style="color:var(--primary-strong);margin-bottom:20px;">✏️ Editar Pedido</h3>
       <p style="color:var(--text-muted);margin-bottom:15px;">${App.escapeHtml(pedido.id)} — ${App.escapeHtml(pedido.lugar)}</p>
       <div class="form-grid">
         <div class="form-group"><label for="editPedidoCliente">Cliente</label>
@@ -183,26 +183,26 @@ const PedidosView = {
 
   // Tip modal
   propinaModal(pedidoId, lugar, propinaSugerida = 0) {
-    return `<div style="background:white;border-radius:16px;padding:30px;max-width:420px;width:92%;box-shadow:0 25px 70px rgba(0,0,0,0.35);border-top:4px solid #e91e8c;">
+    return `<div style="background:var(--surface);border-radius:var(--radius-xl);padding:30px;max-width:420px;width:92%;box-shadow:var(--shadow-lg);border-top:4px solid var(--primary);">
       <div style="text-align:center;margin-bottom:18px;">
         <div style="font-size:2.5rem;margin-bottom:8px;">💝</div>
-        <h3 style="color:#e91e8c;margin:0 0 6px;">Registrar Propina</h3>
+        <h3 style="color:var(--primary-strong);margin:0 0 6px;">Registrar Propina</h3>
         <p style="color:var(--text-muted);font-size:0.85rem;margin:0;">Esta propina es <strong>independiente</strong> de la venta de productos y se registrará por separado en la caja.</p>
       </div>
-      <div style="background:#fce4ec;border-radius:10px;padding:12px 16px;margin-bottom:18px;border:1px solid #f48fb1;">
-        <div style="font-size:0.8rem;font-weight:700;color:#c2185b;margin-bottom:4px;">⚠️ PROPINA — No es parte de la venta</div>
-        ${pedidoId ? `<div style="font-size:0.85rem;color:#880e4f;">Pedido: <strong>${App.escapeHtml(pedidoId)}</strong>${lugar ? ' — ' + App.escapeHtml(lugar) : ''}</div>` : '<div style="font-size:0.85rem;color:#880e4f;">Propina general (sin pedido asociado)</div>'}
+      <div style="background:var(--primary-bg);border-radius:var(--radius);padding:12px 16px;margin-bottom:18px;border:1px solid var(--primary-border);">
+        <div style="font-size:0.8rem;font-weight:700;color:var(--primary-strong);margin-bottom:4px;">⚠️ PROPINA — No es parte de la venta</div>
+        ${pedidoId ? `<div style="font-size:0.85rem;color:var(--text-secondary);">Pedido: <strong>${App.escapeHtml(pedidoId)}</strong>${lugar ? ' — ' + App.escapeHtml(lugar) : ''}</div>` : '<div style="font-size:0.85rem;color:var(--text-secondary);">Propina general (sin pedido asociado)</div>'}
       </div>
       <div class="form-group" style="margin-bottom:12px;">
         <label for="propinaMontoModal" style="font-weight:600;">Monto de la Propina</label>
-        <input id="propinaMontoModal" type="number" min="0" step="1000" value="${propinaSugerida > 0 ? propinaSugerida : ''}" placeholder="0" style="font-size:1.3rem;font-weight:700;border-color:#e91e8c;">
+        <input id="propinaMontoModal" type="number" min="0" step="1000" value="${propinaSugerida > 0 ? propinaSugerida : ''}" placeholder="0" style="font-size:1.3rem;font-weight:600;border-color:var(--primary-strong);">
       </div>
       <div class="form-group" style="margin-bottom:18px;">
         <label for="propinaMetodoModal" style="font-weight:600;">Método de Recepción</label>
-        <select id="propinaMetodoModal" style="border-color:#e91e8c;"><option value="Efectivo">💵 Efectivo</option><option value="Transferencia">🏦 Transferencia</option></select>
+        <select id="propinaMetodoModal" style="border-color:var(--primary-strong);"><option value="Efectivo">💵 Efectivo</option><option value="Transferencia">🏦 Transferencia</option></select>
       </div>
       <div class="actions" style="margin-bottom:0;gap:8px;">
-        <button class="btn" id="btnConfirmarPropina" style="flex:1;background:#e91e8c;color:white;border:none;font-weight:700;" type="button">💝 Registrar Propina</button>
+        <button class="btn" id="btnConfirmarPropina" style="flex:1;background:var(--primary);color:var(--on-primary);border:none;font-weight:600;" type="button">💝 Registrar Propina</button>
         <button class="btn btn-secondary" id="btnOmitirPropina" type="button">Omitir</button>
       </div>
       <div id="propinaModalMsg" aria-live="polite" style="margin-top:10px;"></div>

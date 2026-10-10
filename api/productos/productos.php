@@ -96,8 +96,8 @@ if ($method === 'POST' && $path === 'productos') {
     'costo' => 'numeric|min:0', 'stockInicial' => 'numeric|min:0',
   ]);
   $unidad = $v['unidad'] ?: 'Unidad'; $grupo = $v['grupo'] ?: '';
-  $stockMinimo = (float)($v['stockMinimo'] ?? 0); $precio = round((float)($v['precio'] ?? 0));
-  $costo = round((float)($v['costo'] ?? 0)); $stockInicial = (float)($v['stockInicial'] ?? 0);
+  $stockMinimo = (float)($v['stockMinimo'] ?? 0); $precio = round((float)($v['precio'] ?? 0), 2);
+  $costo = round((float)($v['costo'] ?? 0), 2); $stockInicial = (float)($v['stockInicial'] ?? 0);
 
   try {
     $stmt = db()->prepare('INSERT INTO productos (codigo, nombre, unidad, grupo, stock_minimo, precio, costo) VALUES (?,?,?,?,?,?,?)');
@@ -117,6 +117,7 @@ if ($method === 'POST' && $path === 'productos') {
 
 // PUT /api/productos/{codigo} - actualizar
 if ($method === 'PUT' && preg_match('#^productos/(.+)$#', $path, $m)) {
+  requireRole('admin');
   $codigo = urldecode($m[1]);
   $body = jsonBody();
   $sets = []; $vals = [];
@@ -124,7 +125,7 @@ if ($method === 'PUT' && preg_match('#^productos/(.+)$#', $path, $m)) {
     if (isset($body[$f])) { $sets[] = "$f=?"; $vals[] = $body[$f]; }
   }
   foreach (['stockMinimo' => 'stock_minimo', 'precio' => 'precio', 'costo' => 'costo'] as $js => $db) {
-    if (isset($body[$js])) { $sets[] = "$db=?"; $vals[] = in_array($js, ['precio', 'costo'], true) ? round((float)$body[$js]) : (float)$body[$js]; }
+    if (isset($body[$js])) { $sets[] = "$db=?"; $vals[] = in_array($js, ['precio', 'costo'], true) ? round((float)$body[$js], 2) : (float)$body[$js]; }
   }
   if (!$sets) jsonError('Nada que actualizar');
   $vals[] = $codigo;
@@ -136,6 +137,7 @@ if ($method === 'PUT' && preg_match('#^productos/(.+)$#', $path, $m)) {
 // DELETE /api/productos/{codigo}
 // Fase 4: con FK RESTRICT, si tiene movimientos/pedidos devuelve 409 (no 500).
 if ($method === 'DELETE' && preg_match('#^productos/(.+)$#', $path, $m)) {
+  requireRole('admin');
   $codigo = urldecode($m[1]);
   try {
     $stmt = db()->prepare('DELETE FROM productos WHERE codigo = ?');
@@ -157,7 +159,7 @@ if ($method === 'POST' && preg_match('#^productos/(.+)/imagen$#', $path, $m)) {
   $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
   $extensiones = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
   if (!isset($extensiones[$mime])) jsonError('Formato no permitido. Use JPG, PNG o WEBP');
-  $dir = dirname(__DIR__) . '/uploads/productos';
+  $dir = dirname(__DIR__, 2) . '/uploads/productos';
   if (!is_dir($dir) && !mkdir($dir, 0755, true)) jsonError('No se pudo preparar el almacenamiento', 500);
   $nombre = hash('sha256', $codigo . microtime(true)) . '.' . $extensiones[$mime];
   if (!move_uploaded_file($file['tmp_name'], $dir . '/' . $nombre)) jsonError('No se pudo guardar la imagen', 500);

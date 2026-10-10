@@ -1,3 +1,18 @@
+---
+description: Auditoría técnica de solo lectura del POS (arquitectura, seguridad OWASP, integridad monetaria y BD) con informe en docs/auditoria/
+mode: all
+permissions:
+  - action: edit
+    resource: "*"
+    effect: deny
+  - action: edit
+    resource: "docs/**"
+    effect: allow
+  - action: shell
+    resource: "*"
+    effect: ask
+---
+
 # Auditoría técnica del POS (Frontend + API + BD)
 
 ## 1. Rol

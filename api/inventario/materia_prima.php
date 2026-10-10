@@ -33,7 +33,11 @@ if ($method === 'GET' && $path === 'materia-prima') {
 }
 
 // GET /api/materia-prima/{codigo}
-if ($method === 'GET' && preg_match('#^materia-prima/(.+)$#', $path, $m)) {
+// OJO: el patrón es ([^/]+), no (.+). Con (.+) esta ruta engancha también
+// `materia-prima/historial/{codigo}` (que está más abajo) y devolvía siempre
+// 404 "Materia prima no encontrada": el modal de historial de la pestaña de
+// inventario nunca cargó.
+if ($method === 'GET' && preg_match('#^materia-prima/([^/]+)$#', $path, $m)) {
   $codigo = urldecode($m[1]);
   $stmt = db()->prepare("SELECT mp.*,
     " . getStockMpSubquery() . " AS stock_actual
@@ -59,7 +63,7 @@ if ($method === 'POST' && $path === 'materia-prima') {
   ]);
   try {
     db()->prepare('INSERT INTO materia_prima (codigo, nombre, unidad, stock_minimo, costo) VALUES (?,?,?,?,?)')
-      ->execute([$v['codigo'], $v['nombre'], $v['unidad'], (float)($v['stockMinimo'] ?? 0), round((float)($v['costo'] ?? 0))]);
+      ->execute([$v['codigo'], $v['nombre'], $v['unidad'], (float)($v['stockMinimo'] ?? 0), round((float)($v['costo'] ?? 0), 2)]);
     auditLog($authUser, 'CREAR_MATERIA_PRIMA', null, null, ['codigo' => $v['codigo']]);
     jsonResponse(['success' => true, 'mensaje' => 'Materia prima creada']);
   } catch (PDOException $e) {
@@ -78,7 +82,7 @@ if ($method === 'PUT' && preg_match('#^materia-prima/(.+)$#', $path, $m)) {
     if (isset($body[$js])) { $sets[] = "$db=?"; $vals[] = $body[$js]; }
   }
   if (isset($body['stockMinimo'])) { $sets[] = 'stock_minimo=?'; $vals[] = (float)$body['stockMinimo']; }
-  if (isset($body['costo'])) { $sets[] = 'costo=?'; $vals[] = round((float)$body['costo']); }
+  if (isset($body['costo'])) { $sets[] = 'costo=?'; $vals[] = round((float)$body['costo'], 2); }
   if (!$sets) jsonError('Nada que actualizar');
   $vals[] = $codigo;
   $stmt = db()->prepare("UPDATE materia_prima SET " . implode(',', $sets) . " WHERE codigo=?");

@@ -7,7 +7,9 @@
 require_once __DIR__ . '/../api/config.php';
 require_once __DIR__ . '/../api/shared/jwt.php';
 
-define('TEST_API', 'http://localhost/copito-deploy/api');
+// En las suites que mueven dinero la BD de pruebas sobreescribe TEST_API
+// (ver tests/testdb.php); sin eso se usa Apache contra la BD real.
+define('TEST_API', getenv('TEST_API') ?: 'http://localhost/copito-deploy/api');
 define('TEST_TAG', 'TEST-AUTO');
 
 $__passed = 0;
@@ -104,6 +106,8 @@ function t_limpiar_pedido($pedidoId) {
   $pdo->prepare("DELETE FROM movimientos WHERE notas LIKE ?")->execute(["%Pedido $pedidoId%"]);
   $pdo->prepare("DELETE FROM pagos WHERE id_pedido=?")->execute([$pedidoId]);
   $pdo->prepare("DELETE FROM detalle_pedido WHERE id_pedido=?")->execute([$pedidoId]);
+  // facturas.id_pedido es FK RESTRICT (v9): hay que quitarla antes que pedidos.
+  $pdo->prepare("DELETE FROM facturas WHERE id_pedido=?")->execute([$pedidoId]);
   $pdo->prepare("DELETE FROM pedidos WHERE id_pedido=?")->execute([$pedidoId]);
 }
 

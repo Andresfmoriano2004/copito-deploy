@@ -1,6 +1,23 @@
-// Copito POS — Reportes y exportar Excel.
+// Copito POS - Reportes y exportar Excel.
 // Fase 1: split mecánico de js/app.js, sin cambios de lógica.
 // Se carga DESPUÉS de js/app.js y extiende la fachada global App.
+
+// Lee un token de css/style.css. Los <canvas> NO heredan las custom
+// properties, así que sin esto había que fijar hex sueltos y duplicarlos
+// por tema. Con esto los gráficos siguen la misma paleta que la interfaz
+// en los dos temas (DESIGN.md §"Design Tokens": tokens semánticos antes
+// que valores crudos).
+const _tok = (nombre, fallback = '') =>
+  getComputedStyle(document.documentElement).getPropertyValue(nombre).trim() || fallback;
+
+// Luminancia relativa WCAG de un hex. La usan los gráficos para elegir el
+// color de las etiquetas encima de una porción concreta.
+const _lum = hex => {
+  const c = [1, 3, 5].map(i => parseInt(hex.substr(i, 2), 16) / 255)
+    .map(v => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)));
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+};
+
 Object.assign(App, {
 
   // ================== REPORTES ==================
@@ -19,7 +36,7 @@ Object.assign(App, {
         <div class="stats-grid">
           <div class="stat-card"><div class="stat-value">${totalProd}</div><div class="stat-label">Total Productos</div></div>
           <div class="stat-card"><div class="stat-value">${this.fmt(valorInv)}</div><div class="stat-label">Valor Inventario</div></div>
-          <div class="stat-card"><div class="stat-value" style="color:${bajoStock > 0 ? 'var(--danger)' : 'var(--success)'}">${bajoStock}</div><div class="stat-label">Stock Bajo</div></div>
+          <div class="stat-card"><div class="stat-value" style="color:${bajoStock > 0 ? 'var(--danger)' : 'var(--success-text)'}">${bajoStock}</div><div class="stat-label">Stock Bajo</div></div>
         </div>
         <div class="card"><div class="card-header">📄 Historial de Movimientos</div><div class="card-body">
           <div class="form-grid">
@@ -36,7 +53,7 @@ Object.assign(App, {
           <table><thead><tr><th>Código</th><th>Nombre</th><th>Stock</th><th>Mínimo</th></tr></thead>
           <tbody>${stock.filter(p => p.stockActual < p.stockMinimo).map(p => `<tr>
             <td>${this.escapeHtml(p.codigo)}</td><td>${this.escapeHtml(p.nombre)}</td><td class="text-danger" style="font-weight:600;">${p.stockActual}</td><td>${p.stockMinimo}</td>
-          </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--success);">✔ Todo en orden</td></tr>'}</tbody></table>
+          </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--success-text);">✔ Todo en orden</td></tr>'}</tbody></table>
         </div></div></div>
         <div class="card">
           <div class="card-header">📈 Productos Más Vendidos</div>
@@ -89,8 +106,11 @@ Object.assign(App, {
       const totalGeneral = data.totalIngresos;
 
       // Pie chart colors
-      const pieColors = ['#C2185B','#E91E63','#F06292','#F48FB1','#F8BBD0',
-                         '#880E4F','#AD1457','#D81B60','#EC407A','#F06292'];
+      // Rampa monocroma en la paleta Coral Cream (mismo criterio que el rosa
+      // que había: oscuro → claro dentro de UNA familia, sin acentos
+      // compitiendo — DESIGN.md §"Style Anti-patterns").
+      const pieColors = ['#7a3f3f','#8f4a44','#a5544b','#bf6253','#d66f6f',
+                         '#e5837a','#ff8b8b','#f3a08c','#ffb49e','#ffc9b8'];
 
       // Layout: flex row with pie on left, bars on right
       let html = '<div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start;">';
@@ -141,13 +161,13 @@ Object.assign(App, {
       if (statsEl) {
         statsEl.innerHTML = `<div class="stats-grid">
           <div class="stat-card"><div class="stat-value">${this.fmt(data.totalIngresos)}</div><div class="stat-label">💰 Total Ingresos</div></div>
-          <div class="stat-card"><div class="stat-value" style="color:var(--primary);">${this.fmt(data.sugeridoReinversion)}</div><div class="stat-label">📈 90% para Reinversión</div></div>
+          <div class="stat-card"><div class="stat-value" style="color:var(--primary-strong);">${this.fmt(data.sugeridoReinversion)}</div><div class="stat-label">📈 90% para Reinversión</div></div>
           <div class="stat-card"><div class="stat-value">${data.productos.length}</div><div class="stat-label">📦 Productos vendidos</div></div>
         </div>`;
       }
       if (msgEl) msgEl.innerHTML = '';
     }).catch(err => {
-      if (msgEl) msgEl.innerHTML = `<div class="message error">Error: ${err.message}</div>`;
+      if (msgEl) msgEl.innerHTML = `<div class="message error">Error: ${App.escapeHtml(err.message)}</div>`;
       if (chartEl) chartEl.innerHTML = '';
     });
   },
@@ -172,7 +192,7 @@ Object.assign(App, {
       ctx.closePath();
       ctx.fillStyle = colores[i % colores.length];
       ctx.fill();
-      ctx.strokeStyle = '#fff';
+      ctx.strokeStyle = _tok('--surface', '#fff8ea');
       ctx.lineWidth = 2;
       ctx.stroke();
 
@@ -181,8 +201,10 @@ Object.assign(App, {
         const medio = ang + porcion * Math.PI;
         const lx = cx + Math.cos(medio) * (r * 0.65);
         const ly = cy + Math.sin(medio) * (r * 0.65);
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 12px Segoe UI, sans-serif';
+        // El % va al color que contraste con ESA porción: la rampa va de
+        // #7a3f3f a #ffc9b8, así que un color fijo ilegaliza la mitad.
+        ctx.fillStyle = _lum(colores[i % colores.length]) > 0.28 ? '#2b1212' : '#fff8ea';
+        ctx.font = 'bold 12px ' + _tok('--font', 'system-ui');
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(Math.round(porcion * 100) + '%', lx, ly);
@@ -193,10 +215,10 @@ Object.assign(App, {
     // Center hole for donut effect (optional)
     ctx.beginPath();
     ctx.arc(cx, cy, r * 0.35, 0, 2 * Math.PI);
-    ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'dark' ? '#1E1E1E' : '#fff';
+    ctx.fillStyle = _tok('--surface', '#fff8ea');
     ctx.fill();
-    ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'dark' ? '#E8E8E8' : '#212529';
-    ctx.font = 'bold 14px Segoe UI, sans-serif';
+    ctx.fillStyle = _tok('--text', '#7a3f3f');
+    ctx.font = 'bold 14px ' + _tok('--font', 'system-ui');
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('Top 10', cx, cy);
@@ -220,7 +242,7 @@ Object.assign(App, {
         return;
       }
 
-      const barColors = ['#FF4081','#F50057','#FF80AB','#C2185B','#E91E63','#F06292','#F48FB1','#880E4F','#AD1457','#D81B60'];
+      const barColors = ['#ffc9b8','#ffb49e','#f3a08c','#ff8b8b','#e5837a','#d66f6f','#bf6253','#a5544b','#8f4a44','#7a3f3f'];
       const maxTotal = Math.max(...semanas.map(s => s.total));
 
       // ─── Canvas bar chart ───
@@ -244,10 +266,9 @@ Object.assign(App, {
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, w, h);
 
-        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        const textColor = isDark ? '#E8E8E8' : '#212529';
-        const mutedColor = isDark ? '#A0A0A0' : '#6c757d';
-        const gridColor = isDark ? '#2C2C2C' : '#e9ecef';
+        const textColor = _tok('--text', '#7a3f3f');
+        const mutedColor = _tok('--text-muted', '#99635a');
+        const gridColor = _tok('--border-light', '#f2cfcf');
 
         // Grid lines
         const gridSteps = 5;
@@ -329,7 +350,7 @@ Object.assign(App, {
           const topProds = sem.productos.slice(0, 8);
           topProds.forEach((p, pi) => {
             detHtml += `<tr>
-              ${pi === 0 ? `<td rowspan="${topProds.length}" style="vertical-align:middle;font-weight:600;color:${barColors[semanas.indexOf(sem) % barColors.length]};">${label}</td>` : ''}
+              ${pi === 0 ? `<td rowspan="${topProds.length}" style="vertical-align:middle;font-weight:600;color:var(--text);border-left:4px solid ${barColors[semanas.indexOf(sem) % barColors.length]};">${label}</td>` : ''}
               <td>${this.escapeHtml(p.nombre)}</td>
               <td style="text-align:right;">${p.cantidad}</td>
               <td style="text-align:right;font-weight:600;">${this.fmt(p.total)}</td>
@@ -354,7 +375,7 @@ Object.assign(App, {
 
       if (msgEl) msgEl.innerHTML = '';
     }).catch(err => {
-      if (msgEl) msgEl.innerHTML = `<div class="message error">Error: ${err.message}</div>`;
+      if (msgEl) msgEl.innerHTML = `<div class="message error">Error: ${App.escapeHtml(err.message)}</div>`;
       if (chartEl) chartEl.innerHTML = '';
     });
   },

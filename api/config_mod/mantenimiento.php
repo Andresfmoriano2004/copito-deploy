@@ -19,8 +19,9 @@ $path = $_GET['route'] ?? '';
 $pdo = db();
 
 // Orden FK-safe: hijos primero, padres después.
+// `facturas` apunta a `pedidos` con RESTRICT (v9), así que se borra antes.
 $MODULOS = [
-  'pedidos'     => ['pagos', 'detalle_pedido', 'pedidos'],
+  'pedidos'     => ['pagos', 'detalle_pedido', 'facturas', 'pedidos'],
   'movimientos' => ['movimientos'],
   'caja'        => ['caja_movimientos', 'caja'],
   'auditoria'   => ['auditoria'],
@@ -78,7 +79,8 @@ if ($method === 'POST' && $path === 'mantenimiento/limpiar') {
   } catch (Exception $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
     try { $pdo->exec('SET FOREIGN_KEY_CHECKS=1'); } catch (Exception $ignored) {}
-    jsonError('No se pudo completar la limpieza: ' . $e->getMessage(), 500);
+    error_log('Copito error en mantenimiento: ' . $e->getMessage());
+    jsonError('No se pudo completar la limpieza', 500);
   }
 
   auditLog($authUser, 'LIMPIAR_REGISTROS', null, null, ['modulos' => $modulos, 'eliminados' => $eliminados]);

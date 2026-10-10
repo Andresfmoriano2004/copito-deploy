@@ -21,6 +21,58 @@ const Ticket = {
     });
   },
 
+  /**
+   * Importes a 2 decimales. El comprobante SÍ los necesita: el total es la
+   * suma exacta de base + IVA por línea, y redondear aquí haría que la
+   * factura no cuadrara con lo cobrado.
+   */
+  fmt2(n) {
+    return '$' + Number(n || 0).toLocaleString('es-CO', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  },
+
+  /** 901234567 + dv 8 → 901.234.567-8 (mismo agrupado que el backend). */
+  fmtId(numero, dv) {
+    const d = String(numero == null ? '' : numero).replace(/\D/g, '');
+    if (!d) return '';
+    const g = d.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    const v = String(dv == null ? '' : dv).replace(/\D/g, '');
+    return v ? `${g}-${v}` : g;
+  },
+
+  /**
+   * Datos del emisor en un formato único para el ticket.
+   * Sale de `pedido.empresa` (configuración fiscal real, v9) y, si el pedido
+   * no la trae —una demo o una corrida sin migrar—, cae a la configuración
+   * de este archivo para no dejar el encabezado vacío.
+   */
+  emisor(pedido) {
+    const e = pedido && pedido.empresa;
+    if (!e || !e.nombre) {
+      return {
+        nombre: this.config.nombreNegocio, razon: '',
+        subtitulo: this.config.subtitulo, nit: this.config.nit,
+        direccion: this.config.direccion, telefono: this.config.telefono,
+        regimen: '', actividad: '',
+        pie: this.config.mensajePie, pie2: this.config.pieSecundario
+      };
+    }
+    return {
+      nombre: e.nombre,
+      razon: (e.razon && e.razon !== e.nombre) ? e.razon : '',
+      subtitulo: e.subtitulo || '',
+      nit: e.nit ? `NIT: ${this.fmtId(e.nit, e.dv)}` : '',
+      direccion: [e.direccion, e.ciudad].filter(Boolean).join(' · '),
+      telefono: e.telefono ? `Tel: ${e.telefono}` : '',
+      regimen: e.regimen ? `Régimen: ${e.regimen}` : '',
+      actividad: e.actividad ? `Actividad econ.: ${e.actividad}` : '',
+      pie: e.pie || this.config.mensajePie,
+      pie2: e.pie2 || this.config.pieSecundario
+    };
+  },
+
   formatearFecha(fechaStr) {
     // Consistente con App.fmtFechaHora: MySQL wall-time Bogotá, DD/MM/YYYY hh:mm AM/PM.
     // Usa campos preformateados del backend cuando existen (ya vienen Bogotá, no re-parsear).
@@ -61,6 +113,25 @@ const Ticket = {
     const totalCalculado = items.reduce((sum, it) => sum + Number(it.subtotal || 0), 0);
     const totalMostrar = cuentaFiltro ? totalCalculado : Number(pedido.total || totalCalculado);
 
+    const em = this.emisor(pedido);
+
+    // Solo el pedido con comprobante EMITIDO es una FACTURA. A un pedido
+    // abierto o a la cocina no se le pone ese rótulo: sería un documento sin
+    // consecutivo. Ver sql/migracion_v9_facturacion.sql (Camino A).
+    const factura = (!esComanda && !cuentaFiltro) ? (pedido.factura || null) : null;
+    const esFactura = !!factura;
+    const anulada = esFactura && factura.estado === 'Anulada';
+    const totales = pedido.totales || null;
+
+    // Los comprobantes llevan centavos (base + IVA deben sumar el total
+    // exacto); el ticket simple sigue mostrando pesos enteros como antes.
+    const fmtMoney = (n) => esFactura ? this.fmt2(n) : this.fmt(n);
+
+    const titulo = esComanda ? '*** COMANDA DE PREPARACIÓN ***'
+      : cuentaFiltro ? `*** RECIBO CUENTA ${cuentaFiltro} ***`
+      : esFactura ? '*** FACTURA DE VENTA ***'
+      : '*** TICKET DE VENTA ***';
+
     // Efectivo: lo que da el cliente y lo que se devuelve. El total NO se modifica.
     // cambio = recibido - total (viene en opciones al cerrar; 0 en transferencia/reimpresión).
     const cambioNum = Number(opciones.cambio ?? pedido.cambio ?? 0) || 0;
@@ -82,22 +153,41 @@ const Ticket = {
       const cuentaBadge = it.cuenta ? `<span class="ticket-cuenta-tag">[Cta ${it.cuenta}]</span> ` : '';
 
       if (esComanda) {
+        // La receta del producto (v10) viaja en `opciones.pasos`, ya traída
+        // por mostrarModal(). Sin ella la comanda se imprime igual: la cocina
+        // no se queda sin ticket porque falle la carga de una receta.
+        const cod = it.codigo || it.codigo_producto || it.codigoProducto;
+        const receta = (cod && opciones.pasos && opciones.pasos[cod]) || [];
+        const pasosHtml = receta.length ? `
+            <div class="ticket-receta">
+              ${receta.map((p, i) => `
+                <div class="ticket-paso">
+                  <span class="ticket-paso-n">${i + 1}.</span>
+                  <span class="ticket-paso-txt">${this.escapeHtml(p.instruccion)}${p.tiempoMin ? `<strong class="ticket-paso-tiempo"> (${p.tiempoMin} min${p.equipo ? ' · ' + this.escapeHtml(p.equipo) : ''})</strong>` : ''}</span>
+                </div>`).join('')}
+            </div>` : '';
         itemsHtml += `
           <div class="ticket-row-item ticket-row-comanda">
             <span class="ticket-qty ticket-qty-comanda">${cant}x</span>
             <span class="ticket-name ticket-name-comanda">${cuentaBadge}${this.escapeHtml(it.nombre_producto || it.nombre)}</span>
+            ${pasosHtml}
             ${it.notas ? `<div class="ticket-item-nota ticket-nota-comanda">${this.escapeHtml(it.notas)}</div>` : ''}
           </div>
         `;
       } else {
+        const pctIva = Number(it.ivaPorcentaje || 0);
+        const fiscal = esFactura && pctIva > 0;
         itemsHtml += `
           <div class="ticket-row-item">
             <div class="ticket-item-top">
               <span class="ticket-qty">${cant}x</span>
               <span class="ticket-name">${cuentaBadge}${this.escapeHtml(it.nombre_producto || it.nombre)}</span>
-              <span class="ticket-price">${this.fmt(st)}</span>
+              <span class="ticket-price">${fmtMoney(st)}</span>
             </div>
-            ${cant > 1 ? `<div class="ticket-item-sub">(${cant} x ${this.fmt(pu)})</div>` : ''}
+            ${esFactura
+              ? `<div class="ticket-item-sub">${cant} ${this.escapeHtml(it.unidad || 'Und')} · c/u ${this.fmt2(pu)}</div>`
+              : (cant > 1 ? `<div class="ticket-item-sub">(${cant} x ${this.fmt(pu)})</div>` : '')}
+            ${fiscal ? `<div class="ticket-item-fiscal">Base ${this.fmt2(it.baseGravable)} · IVA ${pctIva}% ${this.fmt2(it.ivaValor)}</div>` : ''}
             ${it.notas ? `<div class="ticket-item-nota">Nota: ${this.escapeHtml(it.notas)}</div>` : ''}
           </div>
         `;
@@ -127,46 +217,114 @@ const Ticket = {
       `;
     }
 
+    // ── ④ Cliente ─────────────────────────────────────────────────────
+    // El comprobante necesita identificar al adquirente. Si no se capturó
+    // nada, el texto legal es "CONSUMIDOR FINAL".
+    let clienteHtml = '';
+    if (esFactura) {
+      const cf = pedido.clienteFiscal || {};
+      const nitCli = cf.nit ? this.fmtId(cf.nit, cf.dv) : '';
+      const nombre = pedido.cliente || '';
+      const consumidorFinal = !nombre && !nitCli;
+      const fila = (etiqueta, valor) => valor
+        ? `<div class="ticket-row-flex"><span>${etiqueta}:</span><span>${this.escapeHtml(valor)}</span></div>`
+        : '';
+      clienteHtml = `
+        <div class="ticket-divider"></div>
+        <div class="ticket-section-title">Cliente</div>
+        ${consumidorFinal
+          ? '<div class="ticket-row-flex"><span>Nombre:</span><span>CONSUMIDOR FINAL</span></div>'
+          : fila('Nombre', nombre || 'Sin nombre')
+            + fila('NIT/C.C.', nitCli)
+            + fila('Dirección', cf.direccion)
+            + fila('Email', cf.email)
+            + fila('Régimen', cf.regimen)}
+      `;
+    }
+
+    // ── ⑥ Totales ─────────────────────────────────────────────────────
+    let totalesHtml = '';
+    if (!esComanda) {
+      if (esFactura && totales) {
+        // SUBTOTAL es la base imponible (precio sin IVA): es lo que suman
+        // las líneas y por eso SUBTOTAL + IVA == TOTAL al centavo.
+        const pcts = [...new Set(items.map(i => Number(i.ivaPorcentaje || 0)).filter(v => v > 0))]
+          .sort((a, b) => a - b);
+        const etiquetaIva = pcts.length === 1 ? `IVA ${pcts[0]}%:` : (pcts.length ? 'IVA:' : '');
+        const desc = Number(totales.descuentos || 0);
+        totalesHtml = `
+          <div class="ticket-divider"></div>
+          <div class="ticket-row-flex"><span>Subtotal:</span><span>${this.fmt2(totales.base)}</span></div>
+          ${desc > 0.005
+            ? `<div class="ticket-row-flex"><span>Descuentos:</span><span>-${this.fmt2(desc)}</span></div>`
+            : ''}
+          ${etiquetaIva && Number(totales.iva) > 0.005
+            ? `<div class="ticket-row-flex"><span>${etiquetaIva}</span><span>${this.fmt2(totales.iva)}</span></div>`
+            : ''}
+          <div class="ticket-row-total"><span>TOTAL:</span><span>${this.fmt2(totalMostrar)}</span></div>
+          ${factura.formaPago
+            ? `<div class="ticket-row-flex"><span>Forma de pago:</span><strong>${this.escapeHtml(factura.formaPago)}</strong></div>`
+            : ''}
+        `;
+      } else {
+        totalesHtml = `
+          <div class="ticket-divider"></div>
+          <div class="ticket-row-total">
+            <span>TOTAL:</span>
+            <span>${this.fmt(totalMostrar)}</span>
+          </div>`;
+      }
+    }
+
     return `
       <div class="ticket-container" id="ticketPrintArea">
         <div class="ticket-header">
-          <div class="ticket-brand">${this.config.nombreNegocio}</div>
-          <div class="ticket-sub">${this.config.subtitulo}</div>
-          <div class="ticket-info">${this.config.nit}</div>
-          <div class="ticket-info">${this.config.direccion}</div>
-          <div class="ticket-info">${this.config.telefono}</div>
+          <div class="ticket-brand">${this.escapeHtml(em.nombre)}</div>
+          ${em.razon ? `<div class="ticket-sub">${this.escapeHtml(em.razon)}</div>` : ''}
+          ${em.subtitulo ? `<div class="ticket-sub">${this.escapeHtml(em.subtitulo)}</div>` : ''}
+          ${em.nit ? `<div class="ticket-info">${this.escapeHtml(em.nit)}</div>` : ''}
+          ${em.direccion ? `<div class="ticket-info">${this.escapeHtml(em.direccion)}</div>` : ''}
+          ${em.telefono ? `<div class="ticket-info">${this.escapeHtml(em.telefono)}</div>` : ''}
+          ${em.regimen ? `<div class="ticket-info">${this.escapeHtml(em.regimen)}</div>` : ''}
+          ${em.actividad ? `<div class="ticket-info">${this.escapeHtml(em.actividad)}</div>` : ''}
           <div class="ticket-divider-double"></div>
-          <div class="ticket-type-title">${esComanda ? '*** COMANDA DE PREPARACIÓN ***' : (cuentaFiltro ? `*** RECIBO CUENTA ${cuentaFiltro} ***` : '*** FACTURA DE VENTA ***')}</div>
+          <div class="ticket-type-title">${titulo}</div>
+          ${esFactura ? `<div class="ticket-folio">No. ${this.escapeHtml(factura.numero)}</div>` : ''}
+          ${esFactura && factura.resolucion
+            ? `<div class="ticket-info">Resolución ${this.escapeHtml(factura.resolucion)}</div>` : ''}
+          ${anulada
+            ? `<div class="ticket-folio ticket-folio-anulada">*** ANULADA ***${factura.anuladaMotivo
+                ? ` — ${this.escapeHtml(factura.anuladaMotivo)}` : ''}</div>` : ''}
         </div>
 
         <div class="ticket-meta">
           <div class="ticket-row-flex">
             <span>Pedido: <strong>#${pedido.id || pedido.id_pedido}</strong></span>
-            <span>${this.formatearFecha(pedido.fechaHoraCierre || pedido.fechaHoraCreacion || pedido.fechaCierre || pedido.fechaCreacion || pedido)}</span>
+            <span>${this.formatearFecha(esFactura && (factura.fechaEmisionFmt || factura.fechaEmision)
+                  ? (factura.fechaEmisionFmt || factura.fechaEmision)
+                  : (pedido.fechaHoraCierre || pedido.fechaHoraCreacion || pedido.fechaCierre || pedido.fechaCreacion || pedido))}</span>
           </div>
           <div class="ticket-row-flex">
             <span>Lugar: <strong>${this.escapeHtml(pedido.lugar || 'General')}</strong></span>
             ${pedido.vendedor ? `<span>Vendedor: ${this.escapeHtml(pedido.vendedor)}</span>` : ''}
           </div>
-          ${pedido.cliente ? `
+          ${!esFactura && pedido.cliente ? `
             <div class="ticket-row-flex">
               <span>Cliente: <strong>${this.escapeHtml(pedido.cliente)}</strong></span>
             </div>
           ` : ''}
         </div>
 
+        ${clienteHtml}
+
         <div class="ticket-divider"></div>
 
         <div class="ticket-items">
-          ${itemsHtml || '<div style="text-align:center;color:#666;">Sin ítems</div>'}
+          ${itemsHtml || '<div style="text-align:center;color:var(--text-muted);">Sin ítems</div>'}
         </div>
 
+        ${totalesHtml}
         ${!esComanda ? `
-          <div class="ticket-divider"></div>
-          <div class="ticket-row-total">
-            <span>TOTAL:</span>
-            <span>${this.fmt(totalMostrar)}</span>
-          </div>
           ${pagosHtml}
           ${vueltoHtml}
         ` : ''}
@@ -181,8 +339,8 @@ const Ticket = {
         ${!esComanda ? `
         <div class="ticket-footer">
           <div class="ticket-divider-double"></div>
-          <div class="ticket-bye">${this.config.mensajePie}</div>
-          <div class="ticket-bye-sub">${this.config.pieSecundario}</div>
+          <div class="ticket-bye">${this.escapeHtml(em.pie)}</div>
+          <div class="ticket-bye-sub">${this.escapeHtml(em.pie2)}</div>
         </div>` : `
         <div class="ticket-footer">
           <div class="ticket-divider-double"></div>
@@ -190,6 +348,30 @@ const Ticket = {
         </div>`}
       </div>
     `;
+  },
+
+  /**
+   * Recetas (paso a paso) de los productos de un pedido, como mapa
+   * { CodigoProducto: [paso, …] }.
+   *
+   * Nunca tira la comanda: si la carga falla devuelve `{}` y cocina recibe el
+   * ticket con los productos y sin receta, que es mejor que no recibir nada.
+   */
+  async cargarPasos(pedido) {
+    try {
+      const items = (pedido && pedido.items) || [];
+      const codigos = [...new Set(items.map(i => i.codigo || i.codigo_producto || i.codigoProducto).filter(Boolean))];
+      if (!codigos.length) return {};
+      const mapa = {};
+      await Promise.all(codigos.map(async c => {
+        const r = await apiGet('/receta-pasos/' + encodeURIComponent(c));
+        if (Array.isArray(r) && r.length) mapa[c] = r;
+      }));
+      return mapa;
+    } catch (e) {
+      console.warn('Ticket: no se pudo cargar la preparación', e);
+      return {};
+    }
   },
 
   /**
@@ -204,6 +386,12 @@ const Ticket = {
         alert('Error al cargar datos del pedido para ticket: ' + e.message);
         return;
       }
+    }
+
+    // Solo la comanda lleva la receta. Se guarda en `opciones` para que al
+    // alternar recibo ↔ comanda desde el modal no se vuelva a pedir.
+    if (opciones.tipo === 'comanda' && !opciones.pasos) {
+      opciones = { ...opciones, pasos: await this.cargarPasos(pedido) };
     }
 
     let modal = document.getElementById('ticketPreviewModal');

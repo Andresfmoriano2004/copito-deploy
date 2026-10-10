@@ -11,6 +11,8 @@ if ($method === 'POST' && preg_match('#^pedidos/(.+)/pagar-item$#', $path, $m)) 
   if (!$pedRow || $pedRow['estado'] !== 'Abierto') jsonError('Pedido no encontrado o cerrado');
   autorizarAccesoPedido($pedRow, $authUser);
 
+  if (!cajaAbierta($pdo)) jsonError('No hay caja abierta. Abra caja antes de registrar cobros.', 409);
+
   $pdo->beginTransaction();
   try {
     $itemStmt = $pdo->prepare('SELECT * FROM detalle_pedido WHERE id=? AND id_pedido=? FOR UPDATE');
@@ -42,7 +44,7 @@ if ($method === 'POST' && preg_match('#^pedidos/(.+)/pagar-item$#', $path, $m)) 
   } catch (Exception $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
     error_log('Copito error pagando item en pedido ' . $id . ': ' . $e->getMessage());
-    jsonError('No se pudo procesar el pago del item: ' . $e->getMessage(), 500);
+    jsonError('No se pudo procesar el pago del item', 500);
   }
 
   jsonResponse(['success' => true, 'mensaje' => 'Item pagado']);
@@ -89,6 +91,7 @@ if ($method === 'POST' && preg_match('#^pedidos/(.+)/pagar-items$#', $path, $m))
   $cuentaPago = $cuenta ?? ($items[0]['cuenta'] ?? null);
 
   $metodos = implode(', ', array_map(fn($p) => $p['metodoPago'], $pagos));
+  if (!cajaAbierta($pdo)) jsonError('No hay caja abierta. Abra caja antes de registrar cobros.', 409);
   $pdo->beginTransaction();
   try {
     $lockStmt = $pdo->prepare('SELECT 1 FROM pagos WHERE id_pedido=? FOR UPDATE');
@@ -106,7 +109,11 @@ if ($method === 'POST' && preg_match('#^pedidos/(.+)/pagar-items$#', $path, $m))
     closeOrderIfPaid($pdo, $id, $pedRow['total']);
     $pdo->commit();
     auditLog($authUser, 'REGISTRAR_PAGO_ITEMS', $id, $pedRow['lugar'], ['detalleIds' => $detalleIds, 'monto' => $totalItems, 'cuenta' => $cuentaPago]);
-  } catch (Exception $e) { if ($pdo->inTransaction()) $pdo->rollBack(); jsonError($e->getMessage(), 500); }
+  } catch (Exception $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    error_log('Copito error pagando items: ' . $e->getMessage());
+    jsonError('No se pudieron pagar los items', 500);
+  }
 
   jsonResponse(['success' => true, 'mensaje' => "Items pagados por $" . number_format($totalItems, 0, ',', '.')]);
 }

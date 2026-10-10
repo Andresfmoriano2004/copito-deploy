@@ -1,4 +1,17 @@
+# Copito POS · imágenes de producto ─────────────────────────────────────────
+# Esta es la carpeta que API_BASE entrega en `productos.imagen_url`
+# (api/productos/productos.php:167), así que aquí sí se sirven binarios.
+# La extensión la decide el servidor a partir del MIME real (líneas 159-164),
+# así que no debería llegar nunca un script; esto es la defensa por si acaso.
+
 Options -Indexes
-<FilesMatch "\.(php|phtml|phar|cgi|pl|py)$">
-  Require all denied
+
+<FilesMatch "\.(php|phtml|phar|php\d|cgi|pl|py|rb|sh|bash|asp|aspx|jsp|htaccess)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
 </FilesMatch>
