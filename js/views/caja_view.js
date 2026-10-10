@@ -119,7 +119,7 @@ const CajaView = {
     const r = resumen;
     const mI = r.montoInicial || 0;
     return `<div style="background:white;border-radius:12px;padding:25px;max-width:480px;width:90%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-      <h3 style="color:var(--primary);margin-bottom:15px;">🔒 Cierre de Caja</h3>
+      <h3 style="color:var(--primary-strong);margin-bottom:15px;">🔒 Cierre de Caja</h3>
       <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:20px;">Apertura: ${App.fmtFechaHora(r.fechaHoraApertura)} | Hora: ${r.horaApertura} | Inicial: ${App.fmt(mI)}</p>
       <div style="background:var(--success-bg);padding:12px;border-radius:8px;margin-bottom:15px;">
         <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>Monto Inicial:</span><strong>${App.fmt(mI)}</strong></div>
@@ -131,7 +131,7 @@ const CajaView = {
         <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>Ventas Bancarias:</span><strong>${App.fmt(r.bancarioVentas)}</strong></div>
         <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>Ingresos Bancarios:</span><strong>${App.fmt(r.bancarioIngresos)}</strong></div>
         <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>Egresos Bancarios:</span><strong>${App.fmt(r.bancarioEgresos)}</strong></div>
-        <div style="display:flex;justify-content:space-between;font-size:1.1rem;border-top:2px solid #0288d1;padding-top:8px;margin-top:8px;"><span><strong>Total Bancario:</strong></span><strong>${App.fmt(r.totalBancario)}</strong></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:1.1rem;border-top:2px solid var(--info);padding-top:8px;margin-top:8px;"><span><strong>Total Bancario:</strong></span><strong>${App.fmt(r.totalBancario)}</strong></div></div>
       <div style="background:var(--primary-bg-light);padding:12px;border-radius:8px;margin-bottom:15px;">
         <div style="display:flex;justify-content:space-between;font-size:1.1rem;"><span><strong>Total General Esperado:</strong></span><strong>${App.fmt(r.totalEsperado)}</strong></div></div>
       <div id="cajaDifBox" class="caja-dif-ok">

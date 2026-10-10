@@ -28,7 +28,7 @@ Object.assign(App, {
     modal.className = 'modal-backdrop';
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:2000;font-family:var(--font);';
     modal.innerHTML = `<div style="background:white;border-radius:12px;padding:30px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);" data-codigo="${this.escapeHtml(codigo)}">
-      <h3 style="color:var(--primary);margin-bottom:5px;">${this.escapeHtml(nombre)}</h3>
+      <h3 style="color:var(--primary-strong);margin-bottom:5px;">${this.escapeHtml(nombre)}</h3>
       <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:20px;">Precio base: <strong>${this.fmt(precioBase)}</strong></p>
       ${accountHtml}
       <div class="form-grid" style="grid-template-columns:1fr 1fr;">
@@ -114,7 +114,7 @@ Object.assign(App, {
       modal.className = 'modal-backdrop';
       modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:2000;font-family:var(--font);';
       modal.innerHTML = `<div style="background:white;border-radius:12px;padding:30px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-        <h3 style="color:var(--primary);margin-bottom:20px;">Modificar Item</h3>
+        <h3 style="color:var(--primary-strong);margin-bottom:20px;">Modificar Item</h3>
         <p style="color:var(--text-muted);margin-bottom:15px;">${this.escapeHtml(item.nombre)}</p>
         ${accountHtml}
         <div class="form-grid" style="grid-template-columns:1fr 1fr;">

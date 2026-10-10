@@ -179,7 +179,7 @@ Object.assign(App, {
           <td style="font-weight:600;">${this.escapeHtml(f.nombre)}</td>
           <td>${f.insumos}</td>
           <td><strong>$${fmt(f.costoTeorico)}</strong></td>
-          <td style="${ok ? 'color:var(--text-muted);' : 'color:#c0392b;font-weight:600;'}"
+          <td style="${ok ? 'color:var(--text-muted);' : 'color:var(--danger-text);font-weight:600;'}"
               title="${ok ? 'Coincide con la receta' : 'No coincide con la receta: el costo del producto está desactualizado'}">$${fmt(f.costoCatalogo)}${ok ? '' : ' ⚠'}</td>
           <td>$${fmt(f.precio)}</td>
           <td>$${fmt(f.margen)}${f.margenPct !== null && f.margenPct !== undefined ? ` <span style="color:var(--text-muted);">(${f.margenPct}%)</span>` : ''}</td>
@@ -312,7 +312,7 @@ Object.assign(App, {
 
     this.mostrarModal(`
       <h3 style="margin-bottom:4px;">📖 Preparación</h3>
-      <div style="font-weight:700;color:var(--primary);margin-bottom:10px;">${this.escapeHtml(this._nombreProducto(codigo))}</div>
+      <div style="font-weight:700;color:var(--primary-strong);margin-bottom:10px;">${this.escapeHtml(this._nombreProducto(codigo))}</div>
       <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:12px;">
         Un producto = una receta. El orden de esta lista es el orden en que se
         imprime en la comanda. Los pasos sin instrucción se descartan al guardar.
@@ -349,7 +349,7 @@ Object.assign(App, {
     cont.innerHTML = this.pasosEdit.map((p, i) => `
       <div class="paso-fila" style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;background:var(--surface);">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
-          <strong style="min-width:62px;color:var(--primary);">Paso ${i + 1}</strong>
+          <strong style="min-width:62px;color:var(--primary-strong);">Paso ${i + 1}</strong>
           <input data-paso-i="${i}" data-paso-f="titulo" maxlength="120"
                  value="${this.escapeHtml(p.titulo || '')}"
                  placeholder="Título (opcional) — ej. Hornear" style="flex:1;min-width:180px;">
@@ -450,7 +450,7 @@ Object.assign(App, {
 
     this.mostrarModal(`
       <h3 style="margin-bottom:4px;">📖 Preparación</h3>
-      <div style="font-weight:700;color:var(--primary);margin-bottom:12px;">${this.escapeHtml(this._nombreProducto(codigo))}</div>
+      <div style="font-weight:700;color:var(--primary-strong);margin-bottom:12px;">${this.escapeHtml(this._nombreProducto(codigo))}</div>
       ${cuerpo}
       <div class="actions" style="margin-top:16px;margin-bottom:0;">
         <button class="btn btn-secondary" data-action="paso-editar" data-codigo="${this.escapeHtml(codigo)}" type="button">✏️ Editar</button>

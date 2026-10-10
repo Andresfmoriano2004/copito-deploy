@@ -46,7 +46,10 @@ y riesgo.
 5. Transiciones CSS; `@keyframes` prohibidos **salvo `spin`** (el único
    documentado en `css/style.css`, el indicador de carga `.loading-spinner`).
    Sin animaciones en JS.
-6. Marca rosa `#E91E78` + carbón; rosa solo como acento. `$5.000` sin espacio.
+6. Sistema de diseño en `DESIGN.md` (manda sobre cualquier otra fuente):
+   marca coral `#ff8b8b` + crema `#fff8ea`; coral solo como acento, nunca
+   como texto sobre crema (2.13:1) — para texto va `--primary-strong`.
+   `$5.000` sin espacio.
 7. Sin frameworks ni dependencias nuevas salvo justificación explícita.
 
 ## 3. Reglas de trabajo (siempre aplican)

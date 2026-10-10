@@ -114,7 +114,7 @@ Object.assign(App, {
       <td data-label="Producto" class="prod-nombre-cell">${p.imagenUrl ? `<img src="${this.escapeHtml(imgUrl(p.imagenUrl))}" alt="" loading="lazy" onerror="this.remove()" class="prod-thumb">` : '<span class="prod-sin-imagen" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 15l5-5 4 4 5-7 4 8"/></svg></span>'}<span>${this.escapeHtml(p.nombre)}</span></td>
       <td data-label="Unidad">${this.escapeHtml(p.unidad)}</td>
       <td data-label="Categoría">${this.escapeHtml(p.grupo)}</td>
-      <td data-label="Stock" style="color:${p.stockActual < p.stockMinimo ? 'var(--danger)' : 'var(--success)'};font-weight:600;">${p.stockActual} <small style="color:var(--text-muted);font-weight:400;">(mín ${p.stockMinimo})</small></td>
+      <td data-label="Stock" style="color:${p.stockActual < p.stockMinimo ? 'var(--danger)' : 'var(--success-text)'};font-weight:600;">${p.stockActual} <small style="color:var(--text-muted);font-weight:400;">(mín ${p.stockMinimo})</small></td>
       <td data-label="Precio">${this.fmt(p.precio)}</td>
       <td data-label="Estado">${p.stockActual <= 0 ? '<span class="badge badge-cancelado">Sin stock</span>' : (p.stockActual < p.stockMinimo ? '<span class="badge badge-bajo">⚠ Bajo</span>' : '<span class="badge badge-ok">✔ OK</span>')}</td>
       <td data-label="Acciones" class="prod-acciones"><button class="btn-icon" data-action="view-product" data-codigo="${this.escapeHtml(p.codigo)}" title="Ver detalle" aria-label="Ver detalle"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>
@@ -193,7 +193,7 @@ Object.assign(App, {
       this.cerrarModal();
       const pasosHtml = (Array.isArray(pasos) && pasos.length) ? `
         <div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--border);">
-          <div style="font-weight:700;color:var(--primary);margin-bottom:8px;">📖 Preparación</div>
+          <div style="font-weight:700;color:var(--primary-strong);margin-bottom:8px;">📖 Preparación</div>
           <ol style="margin:0;padding-left:20px;">${pasos.map(p => `
             <li style="margin-bottom:8px;">
               ${p.titulo ? `<strong>${this.escapeHtml(p.titulo)}</strong>` : ''}
@@ -207,7 +207,7 @@ Object.assign(App, {
       modal.className = 'modal-backdrop';
       modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:2000;font-family:var(--font);';
       modal.innerHTML = `<div style="background:white;border-radius:12px;padding:30px;max-width:${pasosHtml ? 560 : 450}px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);max-height:calc(100vh - 40px);max-height:calc(100dvh - 40px);overflow-y:auto;">
-        <h3 style="color:var(--primary);margin-bottom:15px;">${this.escapeHtml(prod.nombre)}</h3>
+        <h3 style="color:var(--primary-strong);margin-bottom:15px;">${this.escapeHtml(prod.nombre)}</h3>
         <div style="text-align:center;margin-bottom:15px;">${prod.imagenUrl ? `<img src="${this.escapeHtml(imgUrl(prod.imagenUrl))}" alt="Imagen de ${this.escapeHtml(prod.nombre)}" style="max-width:100%;max-height:220px;border-radius:10px;object-fit:cover;" onerror="this.remove()">` : '<div style="font-size:2rem;display:flex;align-items:center;justify-content:center;height:80px;color:var(--text-muted);"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 15l5-5 4 4 5-7 4 8"/></svg></div><div style="color:var(--text-muted);font-size:0.85rem;">Sin imagen</div>'}</div>
         <table style="width:100%;"><tr><td style="padding:6px 0;color:var(--text-muted);">Código</td><td style="padding:6px 0;font-weight:600;">${this.escapeHtml(prod.codigo)}</td></tr>
         <tr><td style="padding:6px 0;color:var(--text-muted);">Unidad</td><td style="padding:6px 0;">${this.escapeHtml(prod.unidad)}</td></tr>
@@ -236,14 +236,14 @@ Object.assign(App, {
       obtenerProducto(codigo).then(prod => {
         Promise.all([obtenerGrupos(), obtenerUnidades()]).then(([grupos, unidades]) => {
           modal.innerHTML = `<div style="background:white;border-radius:12px;padding:30px;max-width:550px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.3);max-height:calc(100vh - 40px);max-height:calc(100dvh - 40px);overflow-y:auto;">
-            <h3 style="color:var(--primary);margin-bottom:20px;">Editar Producto</h3>
+            <h3 style="color:var(--primary-strong);margin-bottom:20px;">Editar Producto</h3>
             <div style="text-align:center;margin-bottom:15px;">${prod.imagenUrl ? `<img src="${this.escapeHtml(imgUrl(prod.imagenUrl))}" alt="" style="max-width:100%;max-height:160px;border-radius:10px;object-fit:cover;" onerror="this.remove()">` : '<div style="font-size:2rem;display:flex;align-items:center;justify-content:center;height:70px;color:var(--text-muted);"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 15l5-5 4 4 5-7 4 8"/></svg></div><div style="color:var(--text-muted);font-size:0.85rem;">Sin imagen</div>'}</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px;padding:10px;background:var(--primary-bg-light);border-radius:8px;">
-              <div><span style="color:var(--text-muted);font-size:0.85rem;">Stock Actual</span><br><span style="font-size:1.3rem;font-weight:700;color:${prod.stockActual < prod.stockMinimo ? 'var(--danger)' : 'var(--success)'}">${prod.stockActual}</span></div>
+              <div><span style="color:var(--text-muted);font-size:0.85rem;">Stock Actual</span><br><span style="font-size:1.3rem;font-weight:700;color:${prod.stockActual < prod.stockMinimo ? 'var(--danger)' : 'var(--success-text)'}">${prod.stockActual}</span></div>
               <div><span style="color:var(--text-muted);font-size:0.85rem;">Valor Inventario</span><br><span style="font-size:1.3rem;font-weight:700;">${this.fmt((prod.stockActual || 0) * (prod.costo || 0))}</span></div>
             </div>
             <div class="form-grid">
-              <div class="form-group"><label>Código</label><input type="text" value="${this.escapeHtml(prod.codigo)}" readonly style="background:#f5f5f5;"></div>
+              <div class="form-group"><label>Código</label><input type="text" value="${this.escapeHtml(prod.codigo)}" readonly style="background:var(--surface-muted);"></div>
               <div class="form-group"><label>Nombre</label><input id="editProdNombre" type="text" value="${this.escapeHtml(prod.nombre)}"></div>
               <div class="form-group"><label>Unidad</label><select id="editProdUnidad">${unidades.map(u => `<option value="${App.escapeHtml(u)}" ${prod.unidad === u ? 'selected' : ''}>${App.escapeHtml(u)}</option>`).join('')}</select></div>
               <div class="form-group"><label>Grupo</label><select id="editProdGrupo">${grupos.map(g => `<option value="${App.escapeHtml(g)}" ${prod.grupo === g ? 'selected' : ''}>${App.escapeHtml(g)}</option>`).join('')}</select></div>
@@ -311,7 +311,7 @@ Object.assign(App, {
             <table class="tabla-responsive"><thead><tr><th>Código</th><th>Nombre</th><th>Unidad</th><th>Stock</th><th>Mínimo</th><th>Precio</th><th>Estado</th></tr></thead>
             <tbody>${stock.map(p => `<tr>
               <td data-label="Código">${this.escapeHtml(p.codigo)}</td><td data-label="Nombre" class="prod-nombre-cell">${p.imagenUrl ? `<img src="${this.escapeHtml(imgUrl(p.imagenUrl))}" alt="" loading="lazy" onerror="this.remove()" class="prod-thumb">` : '<span class="prod-sin-imagen" aria-hidden="true">🖼️</span>'}<span>${this.escapeHtml(p.nombre)}</span></td><td data-label="Unidad">${this.escapeHtml(p.unidad)}</td>
-              <td data-label="Stock" style="font-weight:600;color:${p.stockActual < p.stockMinimo ? 'var(--danger)' : 'var(--success)'}">${p.stockActual}</td>
+              <td data-label="Stock" style="font-weight:600;color:${p.stockActual < p.stockMinimo ? 'var(--danger)' : 'var(--success-text)'}">${p.stockActual}</td>
               <td data-label="Mínimo">${p.stockMinimo}</td><td data-label="Precio">${this.fmt(p.precio)}</td>
               <td data-label="Estado">${p.stockActual < p.stockMinimo ? '<span class="badge badge-bajo">⚠ Bajo</span>' : '<span class="badge badge-ok">✔ OK</span>'}</td>
             </tr>`).join('')}</tbody></table>

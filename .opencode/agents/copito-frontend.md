@@ -58,12 +58,16 @@ ahí — no lo simules ni inventes su forma de respuesta.
 - **PWA:** `sw.js` con `CACHE_NAME` y `STATIC_ASSETS`.
 
 **Identidad visual:**
-- Color primario: `#E91E78` (rosa) sobre fondo carbón/negro (modo oscuro).
-- El rosa es acento, no fondo dominante — úsalo en CTAs, estados activos y
-  highlights, no en superficies grandes.
+- Sistema de diseño completo en `DESIGN.md`: manda sobre cualquier otro
+  archivo. Paleta Coral Cream — coral `#ff8b8b` + crema `#fff8ea`, tipografía
+  `system-ui`, radius 4/8/12, motion 120/180/260 ms.
+- El coral es acento, no fondo dominante — úsalo en CTAs, estados activos y
+  highlights, no en superficies grandes. Sobre coral el texto va con
+  `--on-primary` (#2b1212); el coral como texto sobre superficies claras va
+  con `--primary-strong` (#7a3f3f).
 - Precios en formato `$5.000` (sin espacio, punto de miles, sin decimales).
-- Contraste mínimo WCAG AA para texto sobre rosa y sobre negro; verifica antes
-  de usar rosa como color de texto sobre fondo carbón (puede no pasar el ratio).
+- Contraste mínimo WCAG AA: verifica el par texto/fondo antes de usarlo.
+  `--primary` puro sobre crema da 2.13:1 y NO sirve para texto.
 
 **Convenciones inviolables:**
 1. Dinero en centavos en JS (`toCents`/`fromCents`) si el valor se calcula o

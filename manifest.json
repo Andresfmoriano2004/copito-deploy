@@ -4,8 +4,8 @@
   "description": "Sistema POS y Control de Inventario para Dark Pink Coffee",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0F172A",
-  "theme_color": "#1E293B",
+  "background_color": "#fff8ea",
+  "theme_color": "#fff8ea",
   "orientation": "any",
   "icons": [
     {

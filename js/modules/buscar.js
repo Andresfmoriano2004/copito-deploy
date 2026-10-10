@@ -19,7 +19,7 @@ Object.assign(App, {
             <tbody id="searchResultsBody">
               ${productos.map(p => `<tr>
                 <td data-label="Código">${this.escapeHtml(p.codigo)}</td><td data-label="Nombre">${this.escapeHtml(p.nombre)}</td><td data-label="Unidad">${this.escapeHtml(p.unidad)}</td>
-                <td data-label="Grupo">${this.escapeHtml(p.grupo)}</td><td data-label="Stock" style="font-weight:600;color:${p.stockActual < p.stockMinimo ? 'var(--danger)' : 'var(--success)'}">${p.stockActual}</td>
+                <td data-label="Grupo">${this.escapeHtml(p.grupo)}</td><td data-label="Stock" style="font-weight:600;color:${p.stockActual < p.stockMinimo ? 'var(--danger)' : 'var(--success-text)'}">${p.stockActual}</td>
                 <td data-label="Precio">${this.fmt(p.precio)}</td>
               </tr>`).join('')}
             </tbody></table>
@@ -32,7 +32,7 @@ Object.assign(App, {
         if (!tbody) return;
         tbody.innerHTML = lista.map(p => `<tr>
           <td data-label="Código">${this.escapeHtml(p.codigo)}</td><td data-label="Nombre">${p.imagenUrl ? `<img src="${this.escapeHtml(imgUrl(p.imagenUrl))}" alt="" loading="lazy" onerror="this.remove()" class="prod-thumb">` : ''}${this.escapeHtml(p.nombre)}</td><td data-label="Unidad">${this.escapeHtml(p.unidad)}</td>
-          <td data-label="Grupo">${this.escapeHtml(p.grupo)}</td><td data-label="Stock" style="font-weight:600;color:${p.stockActual < p.stockMinimo ? 'var(--danger)' : 'var(--success)'}">${p.stockActual}</td>
+          <td data-label="Grupo">${this.escapeHtml(p.grupo)}</td><td data-label="Stock" style="font-weight:600;color:${p.stockActual < p.stockMinimo ? 'var(--danger)' : 'var(--success-text)'}">${p.stockActual}</td>
           <td data-label="Precio">${this.fmt(p.precio)}</td>
         </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);">Sin resultados</td></tr>';
       };

@@ -52,7 +52,7 @@ Object.assign(App, {
               <div class="stat-label">Ingredientes</div>
             </div>
             <div class="stat-card">
-              <div class="stat-value" style="color:${stats.stockBajo > 0 ? 'var(--danger)' : 'var(--success)'}">${stats.stockBajo}</div>
+              <div class="stat-value" style="color:${stats.stockBajo > 0 ? 'var(--danger)' : 'var(--success-text)'}">${stats.stockBajo}</div>
               <div class="stat-label">Stock bajo</div>
             </div>
             <div class="stat-card">

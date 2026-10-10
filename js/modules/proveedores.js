@@ -85,7 +85,7 @@ Object.assign(App, {
       modal.className = 'modal-backdrop';
       modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:2000;font-family:var(--font);';
       modal.innerHTML = `<div style="background:white;border-radius:12px;padding:30px;max-width:550px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.3);max-height:calc(100vh - 40px);max-height:calc(100dvh - 40px);overflow-y:auto;">
-        <h3 style="color:var(--primary);margin-bottom:20px;">✏️ Editar Proveedor</h3>
+        <h3 style="color:var(--primary-strong);margin-bottom:20px;">✏️ Editar Proveedor</h3>
         <div class="form-grid">
           <div class="form-group"><label>Nombre *</label><input id="editProvNombre" type="text" value="${this.escapeHtml(p.nombre)}"></div>
           <div class="form-group"><label>Contacto</label><input id="editProvContacto" type="text" value="${this.escapeHtml(p.contacto || '')}"></div>

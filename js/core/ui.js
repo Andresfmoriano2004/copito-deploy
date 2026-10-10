@@ -88,7 +88,7 @@ Object.assign(App, {
     ` : '';
 
     modal.innerHTML = `<div style="background:white;border-radius:12px;padding:30px;max-width:480px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-      <h3 style="color:var(--primary);margin-bottom:5px;">${this.safeText(titulo)}</h3>
+      <h3 style="color:var(--primary-strong);margin-bottom:5px;">${this.safeText(titulo)}</h3>
       ${itemsInfoHtml}
       <div style="font-size:2rem;font-weight:800;color:var(--primary-dark);margin:10px 0 20px;padding:12px;background:var(--primary-bg);border-radius:12px;text-align:center;">${this.fmt(total)}</div>
       ${metodosHtml}
@@ -166,7 +166,7 @@ Object.assign(App, {
         btnConfirmar.disabled = true;
         btnConfirmar.textContent = `✅ Faltan ${this.fmt(falta)}`;
       } else if (esTransferencia) {
-        estadoMsg.innerHTML = '<span style="color:var(--success);font-weight:600;">✔ Pago por transferencia</span>';
+        estadoMsg.innerHTML = '<span style="color:var(--success-text);font-weight:600;">✔ Pago por transferencia</span>';
         btnConfirmar.disabled = false;
         btnConfirmar.textContent = `✅ Pagar ${this.fmt(total)}`;
       } else if (asignado > total + 0.01) {
@@ -182,7 +182,7 @@ Object.assign(App, {
         if (cambio > 0) {
           estadoMsg.innerHTML = `<span style="color:var(--warning-text);font-weight:600;">Cambio a devolver: ${this.fmt(cambio)}</span>`;
         } else {
-          estadoMsg.innerHTML = '<span style="color:var(--success);font-weight:600;">✔ Monto exacto</span>';
+          estadoMsg.innerHTML = '<span style="color:var(--success-text);font-weight:600;">✔ Monto exacto</span>';
         }
         btnConfirmar.disabled = false;
         btnConfirmar.textContent = `✅ Pagar ${this.fmt(total)}`;
@@ -249,7 +249,7 @@ Object.assign(App, {
       </div>`;
     });
     modal.innerHTML = `<div style="background:white;border-radius:12px;padding:30px;max-width:440px;width:95%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-      <h3 style="color:var(--primary);margin-bottom:5px;">${this.safeText(titulo)}</h3>
+      <h3 style="color:var(--primary-strong);margin-bottom:5px;">${this.safeText(titulo)}</h3>
       <div style="font-size:1.6rem;font-weight:800;color:var(--primary-dark);margin:10px 0 5px;padding:10px;background:var(--primary-bg);border-radius:12px;text-align:center;">Saldo: ${this.fmt(saldo)}</div>
       <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:15px;">Puede abonar cualquier valor hasta el saldo. Se acumula con los pagos anteriores.</p>
       ${metodosHtml}
@@ -284,7 +284,7 @@ Object.assign(App, {
         estadoMsg.innerHTML = `<span style="color:var(--danger);font-weight:600;">⚠️ Supera el saldo pendiente (${this.fmt(saldo)})</span>`;
         btnConfirmar.disabled = true; btnConfirmar.textContent = '💰 Supera el saldo';
       } else if (Math.abs(asignado - saldo) <= 0.01) {
-        estadoMsg.innerHTML = '<span style="color:var(--success);font-weight:600;">✔ Con este abono la cuenta queda pagada</span>';
+        estadoMsg.innerHTML = '<span style="color:var(--success-text);font-weight:600;">✔ Con este abono la cuenta queda pagada</span>';
         btnConfirmar.disabled = false; btnConfirmar.textContent = `💰 Abonar ${this.fmt(asignado)} (cierra)`;
       } else {
         estadoMsg.innerHTML = `<span style="color:var(--info-text);font-weight:600;">Quedarían pendientes ${this.fmt(saldo - asignado)}</span>`;
@@ -314,7 +314,7 @@ Object.assign(App, {
     modal.className = 'modal-backdrop';
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:2000;font-family:var(--font);';
     modal.innerHTML = `<div style="background:white;border-radius:12px;padding:30px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-      <h3 style="color:var(--primary);margin-bottom:15px;">${this.escapeHtml(titulo)}</h3>
+      <h3 style="color:var(--primary-strong);margin-bottom:15px;">${this.escapeHtml(titulo)}</h3>
       <div class="form-group"><input id="modalPromptInput" type="text" placeholder="${this.escapeHtml(placeholder || '')}" style="width:100%;padding:10px;font-size:1rem;border:2px solid var(--primary-border);border-radius:8px;" autofocus></div>
       <div class="actions" style="margin-bottom:0;">
         <button class="btn btn-success" data-action="confirmar-modal-prompt" type="button">Guardar</button>
@@ -389,7 +389,7 @@ Object.assign(App, {
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:2000;font-family:var(--font);';
 
     const panel = document.createElement('div');
-    panel.style.cssText = `background:#FFFFFF;color:#1E293B;border-radius:12px;padding:24px;max-width:${width};width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.3);${options.panelExtra || ''}`;
+    panel.style.cssText = `background:var(--surface);color:var(--text);border-radius:var(--radius-lg);padding:24px;max-width:${width};width:90%;max-height:85vh;overflow-y:auto;box-shadow:var(--shadow-lg);${options.panelExtra || ''}`;
     panel.innerHTML = `${html}<div id="modalMsg" aria-live="polite"></div>`;
     modal.appendChild(panel);
     modal.addEventListener('click', e => { if (e.target === modal) this.cerrarModal(); });

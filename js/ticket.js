@@ -320,7 +320,7 @@ const Ticket = {
         <div class="ticket-divider"></div>
 
         <div class="ticket-items">
-          ${itemsHtml || '<div style="text-align:center;color:#666;">Sin ítems</div>'}
+          ${itemsHtml || '<div style="text-align:center;color:var(--text-muted);">Sin ítems</div>'}
         </div>
 
         ${totalesHtml}
